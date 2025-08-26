@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(/C:\\dev\\dodam_project\\Dodam\\Dodam\\src\\main\\java\\com\\dodam\\admin\\controller/**)",
+      "Read(/C:\\dev\\dodam_project\\Dodam\\Dodam\\src\\main\\java\\com\\dodam\\admin\\config/**)",
+      "Read(/C:\\dev\\dodam_project\\Dodam\\Dodam\\src\\main\\resources/**)",
+      "Read(/C:\\dev\\dodam_project\\Dodam\\Dodam\\src\\main\\resources\\templates/**)",
+      "Read(/C:\\dev\\dodam_project\\Dodam\\Dodam\\src\\main\\resources\\templates\\admin/**)",
+      "Read(/C:\\dev\\dodam_project\\Dodam\\Dodam/**)",
+      "Read(/C:\\dev\\dodam_project\\Dodam\\Dodam/**)",
+      "Read(/C:\\dev\\dodam_project\\Dodam\\Dodam/**)",
+      "Read(/C:\\dev\\dodam_project\\Dodam\\Dodam/**)",
+      "Read(/C:\\dev\\dodam_project\\Dodam\\Dodam\\src\\main\\java\\com\\dodam\\admin\\controller/**)",
+      "Read(/C:\\dev\\dodam_project\\Dodam\\Dodam\\src\\main\\java\\com\\dodam\\board/**)",
+      "Bash(taskkill:*)",
+      "Bash(./gradlew:*)",
+      "Read(/C:\\dev\\dodam_project\\Dodam/**)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [],
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\dev\\dodam_project\\Dodam\\Dodam"
+    ]
+  }
+}
