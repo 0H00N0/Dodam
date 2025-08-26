@@ -27,6 +27,10 @@ public class ProductOption {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
     
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "option_group_id")
+    private OptionGroup optionGroup;
+    
     @Enumerated(EnumType.STRING)
     @Column(name = "option_type", length = 20, nullable = false)
     private OptionType optionType;
@@ -146,6 +150,14 @@ public class ProductOption {
     
     public void setProduct(Product product) {
         this.product = product;
+    }
+    
+    public OptionGroup getOptionGroup() {
+        return optionGroup;
+    }
+    
+    public void setOptionGroup(OptionGroup optionGroup) {
+        this.optionGroup = optionGroup;
     }
     
     public OptionType getOptionType() {

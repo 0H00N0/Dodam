@@ -35,7 +35,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
      * @param productId 상품 ID
      * @return 재고 Optional
      */
-    Optional<Inventory> findByProductId(Long productId);
+    @Query("SELECT i FROM Inventory i WHERE i.product.productId = :productId")
+    Optional<Inventory> findByProductId(@Param("productId") Long productId);
     
     /**
      * 여러 상품 ID로 재고를 조회

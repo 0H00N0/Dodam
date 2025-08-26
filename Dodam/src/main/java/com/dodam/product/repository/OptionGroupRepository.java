@@ -168,7 +168,7 @@ public interface OptionGroupRepository extends JpaRepository<OptionGroup, Long> 
      */
     @Query("SELECT DISTINCT og FROM OptionGroup og " +
            "JOIN og.productOptions po " +
-           "WHERE og.product.productId = :productId AND po.isActive = true " +
+           "WHERE og.product.productId = :productId AND po.isAvailable = true " +
            "ORDER BY og.sortOrder")
     List<OptionGroup> findByProductIdWithActiveOptions(@Param("productId") Long productId);
     
@@ -181,7 +181,7 @@ public interface OptionGroupRepository extends JpaRepository<OptionGroup, Long> 
     @Query("SELECT og FROM OptionGroup og " +
            "WHERE og.product.productId = :productId " +
            "AND NOT EXISTS (SELECT po FROM ProductOption po " +
-                           "WHERE po.optionGroup = og AND po.isActive = true) " +
+                           "WHERE po.optionGroup = og AND po.isAvailable = true) " +
            "ORDER BY og.sortOrder")
     List<OptionGroup> findByProductIdWithInactiveOptionsOnly(@Param("productId") Long productId);
     
@@ -253,7 +253,7 @@ public interface OptionGroupRepository extends JpaRepository<OptionGroup, Long> 
      * @param productId 상품 ID
      * @return [OptionGroup, 활성옵션개수] 목록
      */
-    @Query("SELECT og, COUNT(CASE WHEN po.isActive = true THEN 1 END) FROM OptionGroup og " +
+    @Query("SELECT og, COUNT(CASE WHEN po.isAvailable = true THEN 1 END) FROM OptionGroup og " +
            "LEFT JOIN og.productOptions po " +
            "WHERE og.product.productId = :productId " +
            "GROUP BY og " +
