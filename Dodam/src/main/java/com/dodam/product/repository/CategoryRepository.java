@@ -49,8 +49,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      * 
      * @return 루트 카테고리 목록
      */
-    @Query("SELECT c FROM Category c WHERE c.parentCategoryId IS NULL AND c.isActive = true ORDER BY c.displayOrder ASC")
-    List<Category> findRootCategories();
+    List<Category> findByParentCategoryIdIsNullAndIsActiveTrueOrderByDisplayOrderAsc();
     
     /**
      * 부모 카테고리의 하위 카테고리 조회

@@ -76,7 +76,7 @@ public interface BrandRepository extends JpaRepository<Brand, Long> {
      * @param keyword 검색 키워드
      * @return 검색된 브랜드 목록
      */
-    List<Brand> findByBrandNameContainingIgnoreCaseAndIsActiveTrueOrderByBrandNameAsc(String keyword);
+    List<Brand> findByBrandNameContainingAndIsActiveTrueOrderByBrandNameAsc(String keyword);
     
     /**
      * 브랜드명 또는 설명으로 검색
