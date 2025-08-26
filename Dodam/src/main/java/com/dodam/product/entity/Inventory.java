@@ -144,6 +144,84 @@ public class Inventory {
     }
     
     /**
+     * 재고를 예약합니다.
+     * 
+     * @param amount 예약할 수량
+     * @throws InsufficientStockException 사용 가능한 재고가 부족한 경우
+     */
+    public void reserveStock(int amount) {
+        if (availableQuantity < amount) {
+            throw new InsufficientStockException(
+                String.format("재고가 부족합니다. 요청수량: %d, 사용가능수량: %d", amount, availableQuantity)
+            );
+        }
+        this.availableQuantity -= amount;
+        this.reservedQuantity += amount;
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    /**
+     * 예약된 재고를 확정합니다.
+     * 
+     * @param amount 확정할 수량
+     */
+    public void confirmReservation(int amount) {
+        if (reservedQuantity < amount) {
+            throw new IllegalStateException(
+                String.format("예약 수량이 부족합니다. 요청수량: %d, 예약수량: %d", amount, reservedQuantity)
+            );
+        }
+        this.quantity -= amount;
+        this.reservedQuantity -= amount;
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    /**
+     * 예약을 취소합니다.
+     * 
+     * @param amount 취소할 수량
+     */
+    public void cancelReservation(int amount) {
+        if (reservedQuantity < amount) {
+            throw new IllegalStateException(
+                String.format("예약 수량이 부족합니다. 요청수량: %d, 예약수량: %d", amount, reservedQuantity)
+            );
+        }
+        this.availableQuantity += amount;
+        this.reservedQuantity -= amount;
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    /**
+     * 사용 가능한 재고를 증가시킵니다.
+     * 
+     * @param amount 증가할 수량
+     */
+    public void increaseAvailableStock(int amount) {
+        this.quantity += amount;
+        this.availableQuantity += amount;
+        this.lastRestockedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    /**
+     * 사용 가능한 재고를 감소시킵니다.
+     * 
+     * @param amount 감소할 수량
+     * @throws InsufficientStockException 사용 가능한 재고가 부족한 경우
+     */
+    public void decreaseAvailableStock(int amount) {
+        if (availableQuantity < amount) {
+            throw new InsufficientStockException(
+                String.format("재고가 부족합니다. 요청수량: %d, 사용가능수량: %d", amount, availableQuantity)
+            );
+        }
+        this.availableQuantity -= amount;
+        this.quantity -= amount;
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    /**
      * 재고 수량을 직접 설정합니다.
      * 
      * @param newQuantity 새로운 총 재고 수량

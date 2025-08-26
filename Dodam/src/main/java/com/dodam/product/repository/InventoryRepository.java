@@ -29,6 +29,23 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
      */
     Optional<Inventory> findByProductProductId(Long productId);
     
+    /**
+     * 상품 ID로 재고 조회 (간단한 방법)
+     * 
+     * @param productId 상품 ID
+     * @return 재고 Optional
+     */
+    Optional<Inventory> findByProductId(Long productId);
+    
+    /**
+     * 여러 상품 ID로 재고를 조회
+     * 
+     * @param productIds 상품 ID 목록
+     * @return 재고 목록
+     */
+    @Query("SELECT i FROM Inventory i WHERE i.product.productId IN :productIds")
+    List<Inventory> findByProductIdIn(@Param("productIds") List<Long> productIds);
+    
     // === 동시성 제어를 위한 락 메서드 ===
     
     /**
@@ -87,6 +104,15 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
      */
     @Query("SELECT i FROM Inventory i WHERE i.availableQuantity <= :threshold")
     List<Inventory> findInventoriesBelowThreshold(@Param("threshold") Integer threshold);
+    
+    /**
+     * 재고 부족 상품 조회 (특정 임계값 이하)
+     * 
+     * @param threshold 임계값
+     * @return 재고 부족 재고 목록
+     */
+    @Query("SELECT i FROM Inventory i WHERE i.availableQuantity <= :threshold")
+    List<Inventory> findLowStockProducts(@Param("threshold") int threshold);
     
     /**
      * 예약된 재고가 있는 상품 조회
