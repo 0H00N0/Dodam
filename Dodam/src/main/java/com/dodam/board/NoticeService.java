@@ -11,4 +11,4 @@ public class NoticeService {
   public NoticeService(NoticeRepository r){this.repo=r;}
   public List<NoticeEntity> latest(){ return repo.findTop5ByOrderByPinnedDescCreatedAtDesc(); }
   public List<NoticeEntity> list(){ return repo.findAll(); }
-}//
+}

@@ -6,4 +6,4 @@ import com.dodam.board.NoticeEntity;
 
 public interface NoticeRepository extends JpaRepository<NoticeEntity, Long> {
   List<NoticeEntity> findTop5ByOrderByPinnedDescCreatedAtDesc();
-}//
+}
