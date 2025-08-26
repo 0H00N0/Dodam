@@ -12,18 +12,24 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Repository
-public interface AdminRepository extends JpaRepository<AdminEntity, Long> {
+public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
-    Optional<AdminEntity> findByUsername(String username);
+    // username 기반 조회
+    Optional<UserEntity> findByUsername(String username);
 
-    Optional<AdminEntity> findByEmail(String email);
+    // username + role 조회
+    Optional<UserEntity> findByUsernameAndRole(String username, UserEntity.UserRole role);
 
+    // email 기반 조회
+    Optional<UserEntity> findByEmail(String email);
+
+    // 중복 체크
     boolean existsByUsername(String username);
-
     boolean existsByEmail(String email);
 
+    // 로그인 시간 업데이트
     @Modifying
     @Transactional
-    @Query("UPDATE AdminEntity a SET a.lastLoginAt = ?2 WHERE a.username = ?1")
-    void updateLastLoginTime(String username, LocalDateTime lastLoginTime);
+    @Query("UPDATE UserEntity u SET u.lastLoginAt = :lastLoginAt WHERE u.username = :username")
+    void updateLastLoginTime(@Param("username") String username, @Param("lastLoginAt") LocalDateTime lastLoginAt);
 }

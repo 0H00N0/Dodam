@@ -44,6 +44,7 @@ public class AdminEntity implements UserDetails {
     @Column(nullable = false)
     private AdminRole role;
     
+    @Builder.Default
     @Column(nullable = false)
     private Boolean enabled = true;
     
@@ -97,6 +98,6 @@ public class AdminEntity implements UserDetails {
     	 SUPER_ADMIN,  // 최고 관리자
          ADMIN,        // 일반 관리자
          STAFF,        // 직원
-         DELIVERYMAN   // 배달기사
+         DELIVERYMAN,   // 배달기사
     }
 }
