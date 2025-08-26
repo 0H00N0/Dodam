@@ -13,3 +13,4 @@ public class BoardController {
         return "board/list";
     }
 }
+
