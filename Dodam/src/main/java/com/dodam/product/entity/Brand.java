@@ -39,9 +39,9 @@ public class Brand {
     private List<Product> products = new ArrayList<>();
     
     /**
-     * 기본 생성자
+     * 기본 생성자 (테스트용 public 접근자)
      */
-    protected Brand() {}
+    public Brand() {}
     
     /**
      * 브랜드 생성자
@@ -134,5 +134,19 @@ public class Brand {
     
     public List<Product> getProducts() {
         return new ArrayList<>(products);
+    }
+    
+    // === 테스트용 setter 메서드들 ===
+    
+    public void setBrandId(Long brandId) {
+        this.brandId = brandId;
+    }
+    
+    public void setBrandName(String brandName) {
+        this.brandName = brandName;
+    }
+    
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
     }
 }

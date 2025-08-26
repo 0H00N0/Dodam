@@ -49,9 +49,9 @@ public class Inventory {
     private LocalDateTime updatedAt;
     
     /**
-     * 기본 생성자
+     * 기본 생성자 (테스트용 public 접근자)
      */
-    protected Inventory() {}
+    public Inventory() {}
     
     /**
      * 재고 생성자
@@ -248,5 +248,27 @@ public class Inventory {
     
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+    
+    // === 테스트용 setter 메서드들 ===
+    
+    public void setInventoryId(Long inventoryId) {
+        this.inventoryId = inventoryId;
+    }
+    
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
+    }
+    
+    public void setReservedQuantity(Integer reservedQuantity) {
+        this.reservedQuantity = reservedQuantity;
+    }
+    
+    public void setAvailableQuantity(Integer availableQuantity) {
+        this.availableQuantity = availableQuantity;
+    }
+    
+    public void setLastRestockedAt(LocalDateTime lastRestockedAt) {
+        this.lastRestockedAt = lastRestockedAt;
     }
 }

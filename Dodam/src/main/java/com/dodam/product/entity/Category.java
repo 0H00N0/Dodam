@@ -43,9 +43,9 @@ public class Category {
     private List<Product> products = new ArrayList<>();
     
     /**
-     * 기본 생성자
+     * 기본 생성자 (테스트용 public 접근자)
      */
-    protected Category() {}
+    public Category() {}
     
     /**
      * 카테고리 생성자
@@ -155,5 +155,23 @@ public class Category {
     
     public List<Product> getProducts() {
         return new ArrayList<>(products);
+    }
+    
+    // === 테스트용 setter 메서드들 ===
+    
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+    
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
+    }
+    
+    public void setDisplayOrder(Integer displayOrder) {
+        this.displayOrder = displayOrder;
+    }
+    
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
     }
 }
