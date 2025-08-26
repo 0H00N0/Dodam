@@ -15,4 +15,4 @@ public class NoticeController {
     model.addAttribute("items", service.list());
     return "notice/list";
   }
-}
+}//

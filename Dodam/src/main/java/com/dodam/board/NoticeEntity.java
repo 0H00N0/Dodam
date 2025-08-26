@@ -20,4 +20,4 @@ public class NoticeEntity {
   public String getContent(){return content;} public void setContent(String v){content=v;}
   public LocalDateTime getCreatedAt(){return createdAt;} public void setCreatedAt(LocalDateTime v){createdAt=v;}
   public Boolean getPinned(){return pinned;} public void setPinned(Boolean v){pinned=v;}
-}
+}//
