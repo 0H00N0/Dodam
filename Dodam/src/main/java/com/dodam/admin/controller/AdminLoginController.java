@@ -11,11 +11,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 @RequestMapping("/admin")
 @RequiredArgsConstructor
 public class AdminLoginController {
-    
+
     @GetMapping("/login")
     public String loginPage(@RequestParam(value = "error", required = false) String error,
-                           @RequestParam(value = "logout", required = false) String logout,
-                           Model model) {
+                          @RequestParam(value = "logout", required = false) String logout,
+                          Model model) {
         
         if (error != null) {
             model.addAttribute("errorMessage", "아이디 또는 비밀번호가 올바르지 않습니다.");
@@ -25,9 +25,10 @@ public class AdminLoginController {
             model.addAttribute("logoutMessage", "성공적으로 로그아웃되었습니다.");
         }
         
-        return "admin/login";
+        return "admin/login"; // templates/admin/login.html을 반환
     }
     
+    // 대시보드 페이지 (로그인 후 이동할 페이지)
     @GetMapping("/dashboard")
     public String dashboard() {
         return "admin/dashboard";
