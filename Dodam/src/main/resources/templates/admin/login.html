@@ -1,12 +1,11 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>관리자 로그인</title>
 </head>
 <body>
     <h1>관리자 로그인</h1>
-    <form th:action="@{/admin/process}" method="post">
+    <form th:action="@{/admin/login}" method="post">
         <div>
             <label>사용자 유형:</label>
             <input type="radio" id="admin" name="userType" value="ADMIN" checked required>
@@ -24,8 +23,5 @@
         </div>
         <button type="submit">로그인</button>
     </form>
-    
-    <div th:if="${errorMessage}" th:text="${errorMessage}"></div>
-    <div th:if="${logoutMessage}" th:text="${logoutMessage}"></div>
 </body>
 </html>
