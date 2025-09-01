@@ -1,46 +1,40 @@
 package com.dodam.member.config;
 
-import java.util.List;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
-
-import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
-@EnableMethodSecurity
 public class SecurityConfig {
-	 @Bean
-	  public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-	    http
-	      .csrf(csrf -> csrf.disable()) // REST API면 보통 비활성(또는 CSRF 토큰 사용)
-	      .cors(cors -> {})             // 아래 CORS 설정 Bean 사용
-	      .authorizeHttpRequests(auth -> auth
-	    		  .requestMatchers(
-	    				  "/member/api/login", "/member/api/logout",
-	    				  "/member/api/signup", "/member/api/session"
-	    				).permitAll()
-	          .anyRequest().authenticated()
-	      );
-	    return http.build();
-	  }
 
-	  @Bean
-	  public CorsConfigurationSource corsConfigurationSource() {
-	    var config = new CorsConfiguration();
-	    config.setAllowedOrigins(List.of("http://localhost:3000"));
-	    config.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
-	    config.setAllowedHeaders(List.of("*"));
-	    config.setAllowCredentials(true); // 세션 쿠키 허용
+    private final CorsConfigurationSource corsConfigurationSource;
 
-	    var source = new UrlBasedCorsConfigurationSource();
-	    source.registerCorsConfiguration("/**", config);
-	    return source;
-	  }
+    public SecurityConfig(CorsConfigurationSource corsConfigurationSource) {
+        this.corsConfigurationSource = corsConfigurationSource;
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            // CORS 활성화 (위 Bean 사용)
+            .cors(c -> c.configurationSource(corsConfigurationSource))
+            // 개발 단계에서 CSRF 비활성화 (세션+SPA 조합)
+            .csrf(cs -> cs.disable())
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/member/login",
+                    "/member/signup",
+                    "/member/session",
+                    "/member/logout"
+                ).permitAll()
+                .anyRequest().authenticated()
+            )
+            // 폼로그인/세션만 쓸 경우 기본값으로 충분 (또는 .formLogin().disable())
+            .httpBasic(Customizer.withDefaults());
+
+        return http.build();
+    }
 }
