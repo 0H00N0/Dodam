@@ -185,6 +185,14 @@ public class Review {
     }
 
     /**
+     * 리뷰가 숨김 상태인지 확인
+     * @return 숨김 상태 여부
+     */
+    public boolean isHidden() {
+        return status == ReviewStatus.HIDDEN || isDeleted();
+    }
+
+    /**
      * 좋아요 개수 조회
      * @return 좋아요 개수
      */

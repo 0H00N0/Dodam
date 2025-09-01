@@ -82,7 +82,7 @@ public class CategoryService {
         
         Category category = categoryRepository.findById(categoryId)
                 .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("카테고리", categoryId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("카테고리", categoryId));
         
         return convertToResponseDto(category);
     }
@@ -97,7 +97,7 @@ public class CategoryService {
         
         Category category = categoryRepository.findByCategoryName(categoryName)
                 .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("카테고리", categoryName));
+                .orElseThrow(() -> ResourceNotFoundException.forIdentifier("카테고리", categoryName));
         
         return convertToResponseDto(category);
     }
@@ -220,7 +220,7 @@ public class CategoryService {
         // 기존 카테고리 조회
         Category category = categoryRepository.findById(categoryId)
                 .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("카테고리", categoryId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("카테고리", categoryId));
         
         // 카테고리명 중복 검사 (본인 제외)
         if (categoryRepository.existsByCategoryNameIgnoreCase(requestDto.getCategoryName(), categoryId)) {
@@ -251,7 +251,7 @@ public class CategoryService {
         // 기존 카테고리 조회
         Category category = categoryRepository.findById(categoryId)
                 .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("카테고리", categoryId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("카테고리", categoryId));
         
         // 상품이 있는 카테고리는 삭제 불가
         long productCount = categoryRepository.countCategoriesWithProducts();
@@ -279,7 +279,7 @@ public class CategoryService {
         // 삭제된 카테고리 조회
         Category category = categoryRepository.findById(categoryId)
                 .filter(Category::isDeleted)
-                .orElseThrow(() -> new ResourceNotFoundException("삭제된 카테고리", categoryId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("삭제된 카테고리", categoryId));
         
         // 카테고리명 중복 검사 (복구 시에도 중복 불가)
         if (categoryRepository.existsByCategoryNameIgnoreCase(category.getCategoryName(), null)) {

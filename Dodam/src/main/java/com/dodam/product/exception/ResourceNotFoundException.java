@@ -35,21 +35,21 @@ public class ResourceNotFoundException extends BaseException {
     }
 
     /**
-     * 리소스 타입과 ID로 메시지를 생성하는 편의 생성자
+     * 리소스 타입과 ID로 메시지를 생성하는 편의 팩토리 메서드
      * @param resourceType 리소스 타입 (예: "Product", "Category")
      * @param resourceId 리소스 ID
      */
-    public ResourceNotFoundException(String resourceType, Long resourceId) {
-        super(String.format("%s를 찾을 수 없습니다. ID: %d", resourceType, resourceId));
+    public static ResourceNotFoundException forResourceId(String resourceType, Long resourceId) {
+        return new ResourceNotFoundException(String.format("%s를 찾을 수 없습니다. ID: %d", resourceType, resourceId));
     }
 
     /**
-     * 리소스 타입과 식별자로 메시지를 생성하는 편의 생성자
+     * 리소스 타입과 식별자로 메시지를 생성하는 편의 팩토리 메서드
      * @param resourceType 리소스 타입 (예: "Product", "Category")
      * @param identifier 식별자 (예: name, code)
      */
-    public ResourceNotFoundException(String resourceType, String identifier) {
-        super(String.format("%s를 찾을 수 없습니다. 식별자: %s", resourceType, identifier));
+    public static ResourceNotFoundException forIdentifier(String resourceType, String identifier) {
+        return new ResourceNotFoundException(String.format("%s를 찾을 수 없습니다. 식별자: %s", resourceType, identifier));
     }
 
     @Override

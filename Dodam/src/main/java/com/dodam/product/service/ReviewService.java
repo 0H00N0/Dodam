@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -59,7 +60,7 @@ public class ReviewService {
         // 상품 조회
         Product product = productRepository.findById(requestDto.getProductId())
                 .filter(p -> !p.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("상품", requestDto.getProductId()));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("상품", requestDto.getProductId()));
         
         // 중복 리뷰 검사
         if (reviewRepository.existsByMemberIdAndProductProductIdAndDeletedAtIsNull(memberId, requestDto.getProductId())) {
@@ -97,7 +98,7 @@ public class ReviewService {
         
         Review review = reviewRepository.findByIdWithProduct(reviewId)
                 .filter(r -> !r.isDeleted() && r.isDisplayable())
-                .orElseThrow(() -> new ResourceNotFoundException("리뷰", reviewId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("리뷰", reviewId));
         
         return convertToResponseDto(review);
     }
@@ -125,7 +126,7 @@ public class ReviewService {
         
         // 상품 존재 확인
         if (!productRepository.existsById(productId)) {
-            throw new ResourceNotFoundException("상품", productId);
+            throw ResourceNotFoundException.forResourceId("상품", productId);
         }
         
         return reviewRepository.findDisplayableReviewsByProduct(productId, pageable)
@@ -252,11 +253,11 @@ public class ReviewService {
         // 기존 리뷰 조회
         Review review = reviewRepository.findById(reviewId)
                 .filter(r -> !r.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("리뷰", reviewId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("리뷰", reviewId));
         
         // 권한 검증 (작성자만 수정 가능)
         if (!review.getMemberId().equals(memberId)) {
-            throw new UnauthorizedException(memberId, "리뷰 수정");
+            throw UnauthorizedException.forMemberAction(memberId, "리뷰 수정");
         }
         
         // 수정 가능 시간 검증
@@ -289,7 +290,7 @@ public class ReviewService {
         
         Review review = reviewRepository.findById(reviewId)
                 .filter(r -> !r.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("리뷰", reviewId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("리뷰", reviewId));
         
         // 본인 리뷰는 신고 불가
         if (review.getMemberId().equals(reporterId)) {
@@ -314,7 +315,7 @@ public class ReviewService {
         
         Review review = reviewRepository.findById(reviewId)
                 .filter(r -> !r.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("리뷰", reviewId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("리뷰", reviewId));
         
         review.hide();
         reviewRepository.save(review);
@@ -333,7 +334,7 @@ public class ReviewService {
         
         Review review = reviewRepository.findById(reviewId)
                 .filter(r -> !r.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("리뷰", reviewId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("리뷰", reviewId));
         
         review.activate();
         reviewRepository.save(review);
@@ -370,11 +371,11 @@ public class ReviewService {
         
         Review review = reviewRepository.findById(reviewId)
                 .filter(r -> !r.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("리뷰", reviewId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("리뷰", reviewId));
         
         // 권한 검증 (작성자만 삭제 가능)
         if (!review.getMemberId().equals(memberId)) {
-            throw new UnauthorizedException(memberId, "리뷰 삭제");
+            throw UnauthorizedException.forMemberAction(memberId, "리뷰 삭제");
         }
         
         // 소프트 삭제 수행
@@ -406,7 +407,7 @@ public class ReviewService {
                 .activeReviews(activeReviews)
                 .hiddenReviews(hiddenReviews)
                 .reportedReviews(reportedReviews)
-                .averageRating(overallStats[0] != null ? ((Number) overallStats[0]).doubleValue() : 0.0)
+                .averageRating(overallStats[0] != null ? BigDecimal.valueOf(((Number) overallStats[0]).doubleValue()) : BigDecimal.ZERO)
                 .highestRating(overallStats[1] != null ? ((Number) overallStats[1]).intValue() : 0)
                 .lowestRating(overallStats[2] != null ? ((Number) overallStats[2]).intValue() : 0)
                 .build();

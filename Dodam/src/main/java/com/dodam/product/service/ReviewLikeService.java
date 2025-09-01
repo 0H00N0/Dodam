@@ -330,7 +330,7 @@ public class ReviewLikeService {
         
         return stats.stream()
                 .map(row -> ReviewLikeStatisticsDto.DailyLikeStats.builder()
-                        .date((java.sql.Date) row[0])
+                        .date(((java.sql.Date) row[0]).toLocalDate().atStartOfDay())  // Date를 LocalDateTime으로 변환
                         .likeCount(((Number) row[1]).longValue())
                         .cancelCount(((Number) row[2]).longValue())
                         .build())

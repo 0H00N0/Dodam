@@ -30,8 +30,8 @@ public class DuplicateResourceException extends BaseException {
      * @param resourceType 리소스 타입 (예: "Category", "Product")
      * @param duplicateValue 중복된 값
      */
-    public DuplicateResourceException(String resourceType, String duplicateValue) {
-        super(String.format("이미 존재하는 %s입니다: %s", resourceType, duplicateValue));
+    public static DuplicateResourceException forDuplicateResource(String resourceType, String duplicateValue) {
+        return new DuplicateResourceException(String.format("이미 존재하는 %s입니다: %s", resourceType, duplicateValue));
     }
 
     @Override

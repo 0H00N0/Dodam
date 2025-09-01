@@ -33,6 +33,16 @@ public class ReviewStatisticsDto {
     private Long totalReviewCount;
 
     /**
+     * 총 리뷰 수 (서비스에서 사용)
+     */
+    private Long totalReviews;
+
+    /**
+     * 활성 리뷰 수 (서비스에서 사용)
+     */
+    private Long activeReviews;
+
+    /**
      * 활성 리뷰 수 (공개된 리뷰)
      */
     private Long activeReviewCount;
@@ -41,11 +51,21 @@ public class ReviewStatisticsDto {
      * 숨겨진 리뷰 수
      */
     private Long hiddenReviewCount;
+    
+    /**
+     * 숨겨진 리뷰 수 (서비스에서 사용하는 별칭)
+     */
+    private Long hiddenReviews;
 
     /**
      * 신고된 리뷰 수
      */
     private Long reportedReviewCount;
+    
+    /**
+     * 신고된 리뷰 수 (서비스에서 사용하는 별칭)
+     */
+    private Long reportedReviews;
 
     /**
      * 이번 달 신규 리뷰 수
@@ -73,11 +93,21 @@ public class ReviewStatisticsDto {
      * 최고 평점
      */
     private BigDecimal maxRating;
+    
+    /**
+     * 최고 평점 (서비스에서 사용하는 Integer 타입)
+     */
+    private Integer highestRating;
 
     /**
      * 최저 평점
      */
     private BigDecimal minRating;
+    
+    /**
+     * 최저 평점 (서비스에서 사용하는 Integer 타입)
+     */
+    private Integer lowestRating;
 
     /**
      * 평점 표준편차
@@ -459,6 +489,20 @@ public class ReviewStatisticsDto {
         private BigDecimal averageRatingGiven;
         private Long totalLikesReceived;
         private LocalDateTime lastReviewDate;
+    }
+
+    /**
+     * 상품별 평점 통계 정보
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ProductRatingStats {
+        private Long productId;
+        private String productName;
+        private Double averageRating;
+        private Long reviewCount;
     }
 
     // === 정적 팩토리 메서드들 ===

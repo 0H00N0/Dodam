@@ -604,7 +604,7 @@ public class EventRewardService {
         
         return stats.stream()
                 .map(row -> EventStatisticsDto.StatusStats.builder()
-                        .status((RewardStatus) row[0])
+                        .status(((RewardStatus) row[0]).name())  // enum을 String으로 변환
                         .count((Long) row[1])
                         .build())
                 .toList();
@@ -624,7 +624,7 @@ public class EventRewardService {
         
         return stats.stream()
                 .map(row -> EventStatisticsDto.RewardTypeStats.builder()
-                        .rewardType((RewardType) row[0])
+                        .rewardType(((RewardType) row[0]).name())  // enum을 String으로 변환
                         .count((Long) row[1])
                         .totalAmount((BigDecimal) row[2])
                         .build())

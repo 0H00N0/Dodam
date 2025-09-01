@@ -65,7 +65,7 @@ public class ProductService {
         // 카테고리 조회
         Category category = categoryRepository.findById(requestDto.getCategoryId())
                 .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("카테고리", requestDto.getCategoryId()));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("카테고리", requestDto.getCategoryId()));
         
         // Entity 생성 및 저장
         Product product = Product.builder()
@@ -102,7 +102,7 @@ public class ProductService {
         
         Product product = productRepository.findByIdWithCategory(productId)
                 .filter(p -> !p.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("상품", productId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("상품", productId));
         
         return convertToResponseDto(product);
     }
@@ -117,7 +117,7 @@ public class ProductService {
         
         Product product = productRepository.findByProductName(productName)
                 .filter(p -> !p.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("상품", productName));
+                .orElseThrow(() -> ResourceNotFoundException.forIdentifier("상품", productName));
         
         return convertToResponseDto(product);
     }
@@ -158,7 +158,7 @@ public class ProductService {
         
         // 카테고리 존재 확인
         if (!categoryRepository.findById(categoryId).filter(c -> !c.isDeleted()).isPresent()) {
-            throw new ResourceNotFoundException("카테고리", categoryId);
+            throw ResourceNotFoundException.forResourceId("카테고리", categoryId);
         }
         
         return productRepository.findByCategoryCategoryIdAndDeletedAtIsNull(categoryId, pageable)
@@ -282,7 +282,7 @@ public class ProductService {
         
         Product product = productRepository.findById(productId)
                 .filter(p -> !p.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("상품", productId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("상품", productId));
         
         product.increaseStock(quantity);
         Product updatedProduct = productRepository.save(product);
@@ -310,7 +310,7 @@ public class ProductService {
         
         Product product = productRepository.findById(productId)
                 .filter(p -> !p.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("상품", productId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("상품", productId));
         
         try {
             product.decreaseStock(quantity);
@@ -368,7 +368,7 @@ public class ProductService {
         
         Product product = productRepository.findById(productId)
                 .filter(p -> !p.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("상품", productId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("상품", productId));
         
         BigDecimal oldPrice = product.getPrice();
         product.setPrice(newPrice);
@@ -395,7 +395,7 @@ public class ProductService {
         
         Product product = productRepository.findById(productId)
                 .filter(p -> !p.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("상품", productId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("상품", productId));
         
         ProductStatus oldStatus = product.getStatus();
         product.setStatus(status);
@@ -426,7 +426,7 @@ public class ProductService {
         // 기존 상품 조회
         Product product = productRepository.findById(productId)
                 .filter(p -> !p.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("상품", productId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("상품", productId));
         
         // 상품명 중복 검사 (본인 제외)
         if (productRepository.existsByProductNameIgnoreCase(requestDto.getProductName(), productId)) {
@@ -436,7 +436,7 @@ public class ProductService {
         // 카테고리 조회
         Category category = categoryRepository.findById(requestDto.getCategoryId())
                 .filter(c -> !c.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("카테고리", requestDto.getCategoryId()));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("카테고리", requestDto.getCategoryId()));
         
         // 정보 업데이트
         product.setProductName(requestDto.getProductName());
@@ -472,7 +472,7 @@ public class ProductService {
         
         Product product = productRepository.findById(productId)
                 .filter(p -> !p.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("상품", productId));
+                .orElseThrow(() -> ResourceNotFoundException.forResourceId("상품", productId));
         
         // 리뷰가 있는 상품은 삭제 불가
         if (product.getReviewCount() > 0) {

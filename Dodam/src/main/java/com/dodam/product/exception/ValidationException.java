@@ -26,12 +26,12 @@ public class ValidationException extends BaseException {
     }
 
     /**
-     * 필드명과 유효성 위반 내용으로 메시지를 생성하는 편의 생성자
+     * 필드명과 유효성 위반 내용으로 메시지를 생성하는 편의 팩토리 메서드
      * @param fieldName 필드명
      * @param violationMessage 위반 내용
      */
-    public ValidationException(String fieldName, String violationMessage) {
-        super(String.format("%s 필드 유효성 검증 실패: %s", fieldName, violationMessage));
+    public static ValidationException forField(String fieldName, String violationMessage) {
+        return new ValidationException(String.format("%s 필드 유효성 검증 실패: %s", fieldName, violationMessage));
     }
 
     @Override

@@ -411,6 +411,138 @@ public class GifticonStatisticsDto {
     // === 내부 클래스들 ===
 
     /**
+     * 전체 통계 정보
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OverallStats {
+        private Long totalGifticonCount;
+        private Long issuedCount;
+        private Long usedCount;
+        private Long expiredCount;
+        private Long totalCount;  // 추가: 서비스에서 사용하는 총 개수 필드
+        private Long activeCount;  // 추가: 서비스에서 사용하는 활성 개수 필드
+        private Long expiringSoonCount;  // 추가: 서비스에서 사용하는 곧 만료되는 개수 필드
+        private BigDecimal totalValue;
+        private BigDecimal totalAmount;  // 추가: 서비스에서 사용하는 총 금액 필드
+        private BigDecimal averageAmount;  // 추가: 서비스에서 사용하는 평균 금액 필드
+        private BigDecimal maxAmount;  // 추가: 서비스에서 사용하는 최대 금액 필드
+        private BigDecimal minAmount;  // 추가: 서비스에서 사용하는 최소 금액 필드
+        private BigDecimal usedValue;
+        private BigDecimal expiredValue;
+        private Double usageRate;
+        private Double expirationRate;
+    }
+
+    /**
+     * 상태별 통계 정보
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class StatusStats {
+        private String status;
+        private String statusDescription;
+        private Long count;
+        private BigDecimal totalValue;
+        private Double percentage;
+    }
+
+    /**
+     * 회원별 통계 정보
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MemberStats {
+        private Long memberId;
+        private String memberName; // 마스킹된 이름
+        private Long totalGifticonCount;
+        private Long count;  // 추가: 서비스에서 사용하는 개수 필드
+        private Long usedCount;
+        private BigDecimal totalValue;
+        private BigDecimal totalAmount;  // 추가: 서비스에서 사용하는 총 금액 필드
+        private Double usageRate;
+        private LocalDateTime lastUsedDate;
+    }
+
+    /**
+     * 브랜드별 통계 정보
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class BrandStats {
+        private String brandName;
+        private Long totalCount;
+        private Long count;  // 추가: 서비스에서 사용하는 개수 필드
+        private Long usedCount;
+        private BigDecimal totalValue;
+        private BigDecimal totalAmount;  // 추가: 서비스에서 사용하는 총 금액 필드
+        private Double usageRate;
+        private Integer rank;
+    }
+
+    /**
+     * 사용처별 통계 정보
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UsedPlaceStats {
+        private String usedPlace;
+        private Long usedCount;
+        private Long count;  // 추가: 서비스에서 사용하는 개수 필드
+        private BigDecimal totalValue;
+        private Double percentage;
+    }
+
+    /**
+     * 브랜드 사용 통계 정보
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class BrandUsageStats {
+        private String brandName;
+        private Long issuedCount;
+        private Long usedCount;
+        private Long totalCount;  // 추가: 서비스에서 사용하는 총 개수 필드
+        private BigDecimal issuedValue;
+        private BigDecimal usedValue;
+        private Double usageRate;
+        private Double conversionRate;
+    }
+
+    /**
+     * 회원 기프티콘 가치 통계 정보
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MemberValueStats {
+        private Long memberId;
+        private String memberName; // 마스킹된 이름
+        private BigDecimal totalValue;
+        private BigDecimal totalAmount;  // 추가: 서비스에서 사용하는 총 금액 필드
+        private BigDecimal usedValue;
+        private BigDecimal remainingValue;
+        private BigDecimal expiredValue;
+        private BigDecimal activeAmount;  // 추가: 서비스에서 사용하는 활성 금액 필드
+        private BigDecimal usedAmount;  // 추가: 서비스에서 사용하는 사용 금액 필드
+        private Double utilizationRate;
+        private Double savingsRate;
+    }
+
+    /**
      * 인기 기프티콘 상품 정보
      */
     @Data

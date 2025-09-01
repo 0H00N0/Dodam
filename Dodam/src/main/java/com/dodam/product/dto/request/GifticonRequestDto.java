@@ -2,6 +2,7 @@ package com.dodam.product.dto.request;
 
 import com.dodam.product.entity.Gifticon;
 import com.dodam.product.entity.Gifticon.GifticonStatus;
+import com.dodam.product.entity.Gifticon.TransactionType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
@@ -77,6 +78,12 @@ public class GifticonRequestDto {
      * ISSUED, USED, EXPIRED, TRANSFERRED, CANCELLED 중 하나를 입력할 수 있습니다.
      */
     private GifticonStatus status;
+
+    /**
+     * 거래 타입
+     * ISSUED, USED, TRANSFERRED, EXPIRED 중 하나를 입력할 수 있습니다.
+     */
+    private TransactionType transactionType;
 
     /**
      * 유효기간 (필수값)

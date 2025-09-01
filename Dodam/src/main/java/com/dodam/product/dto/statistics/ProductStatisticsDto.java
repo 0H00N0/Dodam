@@ -33,6 +33,16 @@ public class ProductStatisticsDto {
     private Long totalProductCount;
 
     /**
+     * 총 상품 수 (서비스에서 사용)
+     */
+    private Long totalProducts;
+
+    /**
+     * 활성 상품 수 (서비스에서 사용)
+     */
+    private Long activeProducts;
+
+    /**
      * 활성 상품 수
      */
     private Long activeProductCount;
@@ -41,11 +51,36 @@ public class ProductStatisticsDto {
      * 비활성 상품 수
      */
     private Long inactiveProductCount;
+    
+    /**
+     * 비활성 상품 수 (서비스에서 사용하는 별칭)
+     */
+    private Long inactiveProducts;
 
     /**
      * 품절 상품 수
      */
     private Long outOfStockCount;
+    
+    /**
+     * 품절 상품 수 (서비스에서 사용하는 별칭)
+     */
+    private Long outOfStockProducts;
+    
+    /**
+     * 전체 재고 수 (서비스에서 사용하는 필드)
+     */
+    private Long totalStock;
+    
+    /**
+     * 평균 재고 수 (서비스에서 사용하는 필드)
+     */
+    private Double averageStock;
+    
+    /**
+     * 낮은 재고 상품 수 (서비스에서 사용하는 필드)
+     */
+    private Long lowStockProducts;
 
     /**
      * 신규 상품 수 (최근 30일)
@@ -68,11 +103,21 @@ public class ProductStatisticsDto {
      * 최고 가격
      */
     private BigDecimal maxPrice;
+    
+    /**
+     * 최고 가격 (서비스에서 사용하는 별칭)
+     */
+    private BigDecimal highestPrice;
 
     /**
      * 최저 가격
      */
     private BigDecimal minPrice;
+    
+    /**
+     * 최저 가격 (서비스에서 사용하는 별칭)
+     */
+    private BigDecimal lowestPrice;
 
     /**
      * 가격 중앙값

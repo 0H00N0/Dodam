@@ -580,7 +580,7 @@ public class GifticonService {
         
         return stats.stream()
                 .map(row -> GifticonStatisticsDto.StatusStats.builder()
-                        .status((GifticonStatus) row[0])
+                        .status(((GifticonStatus) row[0]).name())  // enum을 String으로 변환
                         .count((Long) row[1])
                         .build())
                 .toList();

@@ -451,6 +451,135 @@ public class EventStatisticsDto {
     // === 내부 클래스들 ===
 
     /**
+     * 전체 통계 정보
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OverallStats {
+        private Long totalEvents;
+        private Long activeEvents;
+        private Long totalParticipants;
+        private Long totalRewards;
+        private Long totalCount;  // 추가: 서비스에서 사용하는 총 개수 필드
+        private Long pendingCount;  // 추가: 서비스에서 사용하는 대기 중 개수 필드
+        private Long approvedCount;  // 추가: 서비스에서 사용하는 승인된 개수 필드
+        private Long rewardedCount;  // 추가: 서비스에서 사용하는 보상 지급 개수 필드
+        private Long expiredCount;  // 추가: 서비스에서 사용하는 만료된 개수 필드
+        private Long cancelledCount;  // 추가: 서비스에서 사용하는 취소된 개수 필드
+        private Long failedCount;  // 추가: 서비스에서 사용하는 실패한 개수 필드
+        private Long conditionMetCount;  // 추가: 서비스에서 사용하는 조건 충족 개수 필드
+        private Long expiringSoonCount;  // 추가: 서비스에서 사용하는 곧 만료되는 개수 필드
+        private BigDecimal totalRewardValue;
+        private BigDecimal totalRewardAmount;  // 추가: 서비스에서 사용하는 총 보상 금액 필드
+        private BigDecimal averageRewardAmount;  // 추가: 서비스에서 사용하는 평균 보상 금액 필드
+        private BigDecimal maxRewardAmount;  // 추가: 서비스에서 사용하는 최대 보상 금액 필드
+        private BigDecimal minRewardAmount;  // 추가: 서비스에서 사용하는 최소 보상 금액 필드
+        private Double averageParticipantsPerEvent;
+        private Double eventCompletionRate;
+        private Double rewardDeliveryRate;
+        private Double successRate;  // 추가: 서비스에서 사용하는 성공률 필드
+        private Double conditionMetRate;  // 추가: 서비스에서 사용하는 조건 충족률 필드
+    }
+
+    /**
+     * 상태별 통계 정보
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class StatusStats {
+        private String status;
+        private String statusDescription;
+        private Long count;
+        private BigDecimal totalValue;
+        private Double percentage;
+    }
+
+    /**
+     * 보상 타입별 통계 정보
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RewardTypeStats {
+        private String rewardType;
+        private String rewardTypeDescription;
+        private Long count;
+        private BigDecimal totalValue;
+        private BigDecimal totalAmount;  // 추가: 서비스에서 사용하는 총 금액 필드
+        private Double percentage;
+        private Double averageValue;
+    }
+
+    /**
+     * 이벤트별 통계 정보
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EventStats {
+        private String eventCode;
+        private String eventName;
+        private Long participantCount;
+        private Long totalParticipants;  // 추가: 서비스에서 사용하는 총 참가자 수 필드
+        private Long rewardCount;
+        private Long rewardedCount;  // 추가: 서비스에서 사용하는 보상 지급 개수 필드
+        private BigDecimal totalRewardValue;
+        private Double completionRate;
+        private Double successRate;  // 추가: 서비스에서 사용하는 성공률 필드
+        private LocalDateTime eventStartDate;
+        private LocalDateTime eventEndDate;
+    }
+
+    /**
+     * 회원별 통계 정보
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MemberStats {
+        private Long memberId;
+        private String memberName; // 마스킹된 이름
+        private Long participationCount;
+        private Long rewardCount;
+        private Long totalRewards;  // 추가: 서비스에서 사용하는 총 보상 개수 필드
+        private Long rewardedCount;  // 추가: 서비스에서 사용하는 보상 지급 개수 필드
+        private BigDecimal totalRewardValue;
+        private BigDecimal totalAmount;  // 추가: 서비스에서 사용하는 총 금액 필드
+        private Double completionRate;
+        private LocalDateTime lastParticipationDate;
+    }
+
+    /**
+     * 이벤트 성과 정보
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EventPerformance {
+        private String eventCode;
+        private String eventName;
+        private Long totalParticipants;
+        private Long completedParticipants;
+        private Long conditionMetCount;  // 추가: 서비스에서 사용하는 조건 충족 개수 필드
+        private Long rewardedCount;
+        private BigDecimal totalRewardValue;
+        private Double completionRate;
+        private Double participationRate;  // 추가: 서비스에서 사용하는 참여율 필드
+        private Double successRate;  // 추가: 서비스에서 사용하는 성공률 필드
+        private Double rewardDeliveryRate;
+        private Double roi;
+        private String performanceGrade;
+    }
+
+    /**
      * 인기 이벤트 정보
      */
     @Data

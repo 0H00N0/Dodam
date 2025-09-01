@@ -574,6 +574,24 @@ public class EventRewardRequestDto {
     }
 
     /**
+     * 최소 보상 금액 반환 (검색용 getter)
+     * 
+     * @return 최소 보상 금액
+     */
+    public BigDecimal getMinAmount() {
+        return this.minRewardAmount;
+    }
+
+    /**
+     * 최대 보상 금액 반환 (검색용 getter)
+     * 
+     * @return 최대 보상 금액
+     */
+    public BigDecimal getMaxAmount() {
+        return this.maxRewardAmount;
+    }
+
+    /**
      * Entity로부터 RequestDto 생성
      * 
      * @param eventReward 이벤트 보상 엔티티

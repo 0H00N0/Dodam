@@ -26,21 +26,21 @@ public class UnauthorizedException extends BaseException {
     }
 
     /**
-     * 작업과 리소스 타입으로 메시지를 생성하는 편의 생성자
+     * 작업과 리소스 타입으로 메시지를 생성하는 편의 팩토리 메서드
      * @param action 시도한 작업 (예: "수정", "삭제")
      * @param resourceType 리소스 타입 (예: "리뷰", "상품")
      */
-    public UnauthorizedException(String action, String resourceType) {
-        super(String.format("%s에 대한 %s 권한이 없습니다.", resourceType, action));
+    public static UnauthorizedException forActionOnResource(String action, String resourceType) {
+        return new UnauthorizedException(String.format("%s에 대한 %s 권한이 없습니다.", resourceType, action));
     }
 
     /**
-     * 회원 ID와 작업으로 메시지를 생성하는 편의 생성자
+     * 회원 ID와 작업으로 메시지를 생성하는 편의 팩토리 메서드
      * @param memberId 회원 ID
      * @param action 시도한 작업
      */
-    public UnauthorizedException(Long memberId, String action) {
-        super(String.format("회원(ID: %d)은 해당 작업('%s')에 대한 권한이 없습니다.", memberId, action));
+    public static UnauthorizedException forMemberAction(Long memberId, String action) {
+        return new UnauthorizedException(String.format("회원(ID: %d)은 해당 작업('%s')에 대한 권한이 없습니다.", memberId, action));
     }
 
     @Override
