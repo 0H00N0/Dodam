@@ -1,6 +1,7 @@
 {
   "permissions": {
     "allow": [
+<<<<<<< HEAD
       "Read(/C:\\dev\\dodam_project\\Dodam\\Dodam\\src\\main\\java\\com\\dodam\\admin\\controller/**)",
       "Read(/C:\\dev\\dodam_project\\Dodam\\Dodam\\src\\main\\java\\com\\dodam\\admin\\config/**)",
       "Read(/C:\\dev\\dodam_project\\Dodam\\Dodam\\src\\main\\resources/**)",
@@ -23,5 +24,12 @@
     "additionalDirectories": [
       "C:\\dev\\dodam_project\\Dodam\\Dodam"
     ]
+=======
+      "Read(C:\\dev\\project\\Dodam\\Dodam\\src\\main\\java\\com\\dodam\\member\\repository/**)",
+      "Read(C:\\dev\\project\\Dodam\\Dodam\\src\\main\\java\\com\\dodam\\member\\entity/**)"
+    ],
+    "deny": [],
+    "ask": []
+>>>>>>> f6e7770 (clone my)
   }
 }
