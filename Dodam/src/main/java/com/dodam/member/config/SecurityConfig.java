@@ -22,9 +22,10 @@ public class SecurityConfig {
 	      .csrf(csrf -> csrf.disable()) // REST API면 보통 비활성(또는 CSRF 토큰 사용)
 	      .cors(cors -> {})             // 아래 CORS 설정 Bean 사용
 	      .authorizeHttpRequests(auth -> auth
-	          .requestMatchers(
-	              "/users/signup", "/users/login", "/users/logout", "/users/session"
-	          ).permitAll()
+	    		  .requestMatchers(
+	    				  "/member/api/login", "/member/api/logout",
+	    				  "/member/api/signup", "/member/api/session"
+	    				).permitAll()
 	          .anyRequest().authenticated()
 	      );
 	    return http.build();
