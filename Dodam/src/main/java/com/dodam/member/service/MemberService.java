@@ -1,6 +1,8 @@
 package com.dodam.member.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.dodam.member.dto.MemberDTO;
 import com.dodam.member.entity.*;
 import com.dodam.member.repository.*;
@@ -18,14 +20,15 @@ public class MemberService {
     private final LoginmethodRepository loginRepo;
 
     /** 회원가입: 기본 memtype=0(일반), loginmethod=local */
+    @Transactional
     public void signup(MemberDTO dto){
         if (memberRepo.existsByMid(dto.getMid()))
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
         if (dto.getMemail() != null && memberRepo.existsByMemail(dto.getMemail()))
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
 
-        MemtypeEntity role = memtypeRepo.findById(0L)
-            .orElseThrow(() -> new IllegalStateException("memtype(0=일반) 시드가 없습니다."));
+        MemtypeEntity role = memtypeRepo.findByRoleName("USER")
+            .orElseThrow(() -> new IllegalStateException("'USER' 역할이 DB에 없습니다."));
         LoginmethodEntity local = loginRepo.findByLmtype("local")
             .orElseThrow(() -> new IllegalStateException("loginmethod(local) 시드가 없습니다."));
 
@@ -75,7 +78,8 @@ public class MemberService {
         System.out.println("사용자 찾음: " + member.getMid() + ", MTYPE: " + member.getMemtype().getRoleName());
         
         // 관리자 권한 확인
-        if (!"ADMIN".equals(member.getMemtype().getRoleName())) {
+        String role = member.getMemtype().getRoleName();
+        if (!("SUPERADMIN".equals(role) || "ADMIN".equals(role) || "STAFF".equals(role))) {
             throw new RuntimeException("관리자 권한이 없습니다.");
         }
         

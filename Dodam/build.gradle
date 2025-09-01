@@ -1,6 +1,6 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '3.5.4'
+	id 'org.springframework.boot' version '3.3.0'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'eclipse'
 }
@@ -38,6 +38,8 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	//testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	
+	implementation 'org.apache.poi:poi-ooxml:5.2.5'
 }
 
 tasks.named('test') {

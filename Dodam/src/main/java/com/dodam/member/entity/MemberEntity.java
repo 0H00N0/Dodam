@@ -65,6 +65,10 @@ public class MemberEntity {
         return "SUPERADMIN".equalsIgnoreCase(getRoleString());
     }
 
+    public boolean isAdmin() {
+        return "ADMIN".equalsIgnoreCase(getRoleString());
+    }
+
     public boolean isStaff() {
         return "STAFF".equalsIgnoreCase(getRoleString());
     }
