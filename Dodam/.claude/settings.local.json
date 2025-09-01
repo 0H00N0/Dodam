@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(C:\\dev\\project\\Dodam\\Dodam\\src\\main\\java\\com\\dodam\\board/**)",
+      "Bash(find:*)",
+      "Bash(gradle:*)",
+      "Bash(./gradlew:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
