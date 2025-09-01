@@ -49,4 +49,15 @@ public class MemberService {
     public MemberDTO readByMid(String mid){
         return memberRepo.findByMid(mid).map(MemberDTO::new).orElse(null);
     }
+    
+    //회원정보 수정
+    public void updateMember(String mid, MemberDTO dto) {
+        MemberEntity entity = memberRepo.findByMid(mid).orElseThrow();
+        entity.setMemail(dto.getMemail());
+        entity.setMtel(dto.getMtel());
+        entity.setMaddr(dto.getMaddr());
+        entity.setMpost(dto.getMpost());
+        entity.setMnic(dto.getMnic());
+        memberRepo.save(entity);
+    }
 }
