@@ -2,13 +2,33 @@ package com.dodam.board;
 
 import org.springframework.stereotype.Service;
 import java.util.List;
-import com.dodam.board.NoticeRepository;
-import com.dodam.board.NoticeEntity;
-import com.dodam.board.NoticeService;
+
 @Service
 public class NoticeService {
-  private final NoticeRepository repo;
-  public NoticeService(NoticeRepository r){this.repo=r;}
-  public List<NoticeEntity> latest(){ return repo.findTop5ByOrderByPinnedDescCreatedAtDesc(); }
-  public List<NoticeEntity> list(){ return repo.findAll(); }
+
+    private final NoticeRepository noticeRepository;
+
+    public NoticeService(NoticeRepository noticeRepository) {
+        this.noticeRepository = noticeRepository;
+    }
+
+    public List<NoticeEntity> findLatest() {
+        return noticeRepository.findTop5ByOrderByPinnedDescCreatedAtDesc();
+    }
+
+    public List<NoticeEntity> findAll() {
+        return noticeRepository.findAll();
+    }
+
+    public NoticeEntity findById(Long id) {
+        return noticeRepository.findById(id).orElse(null);
+    }
+
+    public NoticeEntity save(NoticeEntity notice) {
+        return noticeRepository.save(notice);
+    }
+
+    public void deleteById(Long id) {
+        noticeRepository.deleteById(id);
+    }
 }

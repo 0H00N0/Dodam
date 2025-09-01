@@ -1,10 +1,14 @@
 <!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>관리자 로그인</title>
 </head>
 <body>
     <h1>관리자 로그인</h1>
+    
+    <div th:if="${errorMessage}" style="color: red; margin-bottom: 10px;" th:text="${errorMessage}"></div>
+    
     <form th:action="@{/admin/login}" method="post">
         <div>
             <label>사용자 유형:</label>

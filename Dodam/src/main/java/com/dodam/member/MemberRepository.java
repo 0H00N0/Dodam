@@ -1,5 +1,8 @@
 package com.dodam.member;
 
-public interface MemberRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
 
+public interface MemberRepository extends JpaRepository<MemberEntity, Integer> {
+    // You can add custom query methods here if needed
 }
+
