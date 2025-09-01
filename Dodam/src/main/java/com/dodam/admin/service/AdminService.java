@@ -1,13 +1,21 @@
 package com.dodam.admin.service;
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> a0ba612 (Login & product adding)
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import com.dodam.member.entity.MemberEntity;
 import com.dodam.member.repository.MemberRepository;
 
+<<<<<<< HEAD
 import java.util.Optional;
 
+=======
+>>>>>>> a0ba612 (Login & product adding)
 
 @Service
 @RequiredArgsConstructor

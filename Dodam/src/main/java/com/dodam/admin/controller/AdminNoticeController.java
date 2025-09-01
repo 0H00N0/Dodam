@@ -1,7 +1,7 @@
 package com.dodam.admin.controller;
 
-import com.dodam.admin.board.NoticeEntity;
-import com.dodam.admin.board.NoticeService;
+import com.dodam.board.NoticeEntity;
+import com.dodam.board.NoticeService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
