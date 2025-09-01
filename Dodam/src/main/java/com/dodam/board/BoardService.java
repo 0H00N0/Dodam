@@ -1,4 +1,4 @@
-package com.dodam.board;
+package com.dodam.board;//service
 
 import java.util.List;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package com.dodam.board;
+package com.dodam.board;//dto
 
 import lombok.Data;
 

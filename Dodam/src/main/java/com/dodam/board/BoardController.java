@@ -1,4 +1,4 @@
-package com.dodam.board;
+package com.dodam.board;//controller
 
 import org.springframework.web.bind.annotation.*;
 import java.util.List;

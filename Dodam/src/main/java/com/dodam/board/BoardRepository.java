@@ -1,4 +1,4 @@
-package com.dodam.board;
+package com.dodam.board;//repository
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
