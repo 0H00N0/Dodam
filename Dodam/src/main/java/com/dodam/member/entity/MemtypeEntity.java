@@ -5,16 +5,17 @@ import lombok.*;
 
 @Entity
 @Table(name = "memtype")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class MemtypeEntity {
-    @Id
-    @Column(name = "mtnum")             // ★ 고정 코드 PK (0/1/2/3)
-    private Long mtnum;                  // auto 증가 없음
 
-    @Column(name = "mtmname", nullable = false, length = 50)
-    private String mtmname;              // "일반", "SuperAdmin", "Staff", "Deliveryman"
+    @Id
+    @Column(name = "mtnum")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long mtnum;
+
+    @Column(name = "mtcode", nullable = false)   // 0/1/2/3
+    private Integer mtcode;
+
+    @Column(name = "mtname", nullable = false, length = 50) // "일반","SuperAdmin","Staff","Deliveryman"
+    private String mtname;
 }

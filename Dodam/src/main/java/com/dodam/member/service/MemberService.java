@@ -1,10 +1,17 @@
 package com.dodam.member.service;
 
+import java.time.LocalDate;
+
 import org.springframework.stereotype.Service;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.dodam.member.dto.MemberDTO;
-import com.dodam.member.entity.*;
-import com.dodam.member.repository.*;
+import com.dodam.member.entity.LoginmethodEntity;
+import com.dodam.member.entity.MemtypeEntity;
+import com.dodam.member.repository.LoginmethodRepository;
+import com.dodam.member.repository.MemberRepository;
+import com.dodam.member.repository.MemtypeRepository;
+
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -12,43 +19,69 @@ import lombok.RequiredArgsConstructor;
 public class MemberService {
 
     private final MemberRepository memberRepo;
+    private final LoginmethodRepository loginRepo;  
     private final MemtypeRepository memtypeRepo;
-    private final LoginmethodRepository loginRepo;
-    private final PasswordEncoder encoder;
 
+    // signup(MemberDTO dto)
     /** 회원가입: 기본 memtype=0(일반), loginmethod=local */
-    public void signup(MemberDTO dto){
-        if (memberRepo.existsByMid(dto.getMid()))
-            throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
-        if (dto.getMemail() != null && memberRepo.existsByMemail(dto.getMemail()))
-            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+    @Transactional
+    public void signup(MemberDTO dto) {
+        if (isBlank(dto.getMid()) || isBlank(dto.getMpw()) || isBlank(dto.getMname()) || isBlank(dto.getMtel())) {
+            throw new IllegalArgumentException("필수 입력 누락(mid/mpw/mname/mtel)");
+        }
+        if (memberRepo.existsByMid(dto.getMid())) {
+            throw new IllegalArgumentException("이미 존재하는 아이디입니다.");
+        }
 
-        // ★ 타입코드 0 = 일반
-        MemtypeEntity role = memtypeRepo.findById(0L)
-            .orElseThrow(() -> new IllegalStateException("memtype(0=일반) 시드가 없습니다."));
+        // 기본값(프론트가 안 주는 필드 보강)
+        if (dto.getMaddr() == null) dto.setMaddr("");
+        if (dto.getMpost() == null) dto.setMpost(0L);
+        if (dto.getMbirth() == null) dto.setMbirth(LocalDate.of(2000,1,1));
 
-        // ★ 가입방법 local
-        LoginmethodEntity local = loginRepo.findByLmtype("local")
-            .orElseThrow(() -> new IllegalStateException("loginmethod(local) 시드가 없습니다."));
+        // FK 로딩(없으면 생성)
+        String loginType = (dto.getJoinWay() != null) ? dto.getJoinWay() : "LOCAL";
+        var login = loginRepo.findByLmtype(loginType)
+                     .orElseGet(() -> loginRepo.save(LoginmethodEntity.builder().lmtype(loginType).build()));
 
-        MemberEntity e = MemberDTO.toEntity(dto);
-        e.setMpw(encoder.encode(dto.getMpw()));
-        e.setMemtype(role);
-        e.setLoginmethod(local);
+        int code = (dto.getRoleCode() != null) ? dto.getRoleCode().intValue() : 0;
+        var memtype = memtypeRepo.findByMtcode(code)
+                      .orElseGet(() -> memtypeRepo.save(
+                          MemtypeEntity.builder().mtcode(code)
+                            .mtname(switch(code){ case 1->"SuperAdmin"; case 2->"Staff"; case 3->"Deliveryman"; default->"일반"; })
+                            .build()
+                      ));
 
-        memberRepo.save(e);
+        // 엔티티 변환 + FK 주입
+        var entity = MemberDTO.toEntity(dto);
+        entity.setLoginmethod(login);
+        entity.setMemtype(memtype);
+
+        // (선택) BCrypt 적용 시:
+        // entity.setMpw(encoder.encode(dto.getMpw()));
+
+        memberRepo.save(entity);
     }
-
-    /** 로그인 검증 */
-    public boolean loginCheck(String mid, String rawPw){
-        return memberRepo.findByMid(mid)
-                .map(e -> encoder.matches(rawPw, e.getMpw()))
+    
+ // 로그인 검증: 아이디로 조회 후 비밀번호 비교 (개발용: 평문 비교)
+    @Transactional(readOnly = true)
+    public boolean loginCheck(String mid, String rawPw) {
+        if (mid == null || rawPw == null) return false;
+        String m = mid.trim();
+        String p = rawPw.trim();
+        return memberRepo.findByMid(m)
+                .map(e -> e.getMpw().equals(p))   // 실서비스는 BCrypt.matches(p, e.getMpw())
                 .orElse(false);
     }
 
-    public MemberDTO readByMid(String mid){
-        return memberRepo.findByMid(mid).map(MemberDTO::new).orElse(null);
+    // 세션 정보 세팅용: 아이디로 조회해 DTO로 변환해 전달
+    @Transactional(readOnly = true)
+    public MemberDTO readByMid(String mid) {
+        if (mid == null) return null;
+        return memberRepo.findByMid(mid.trim())
+                .map(MemberDTO::new)   // MemberDTO(MemberEntity e) 생성자 사용
+                .orElse(null);
     }
+<<<<<<< HEAD
     
     //회원정보 수정
     public void updateMember(String mid, MemberDTO dto) {
@@ -60,4 +93,14 @@ public class MemberService {
         entity.setMnic(dto.getMnic());
         memberRepo.save(entity);
     }
+=======
+
+
+    // 로그인 검증 등 다른 메서드가 있다면 여기에…
+    // @Transactional(readOnly = true)
+    // public boolean loginCheck(String mid, String rawPw) { ... }
+
+    // 헬퍼
+    private static boolean isBlank(String s) { return s == null || s.isBlank(); }
+>>>>>>> c8a8145 (회원 시큐리티 제거)
 }

@@ -7,11 +7,7 @@ import lombok.*;
 
 @Entity
 @Table(name = "member")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class MemberEntity {
 
     @Id
@@ -19,9 +15,9 @@ public class MemberEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long mnum;
 
-    // FK: 가입번호
+    // FK: 가입방법
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "lmnum", referencedColumnName = "lmunm", nullable = false)
+    @JoinColumn(name = "lmnum", referencedColumnName = "lmnum", nullable = false) // ★lmnum로 수정
     private LoginmethodEntity loginmethod;
 
     // FK: 회원타입(0/1/2/3)
@@ -29,10 +25,10 @@ public class MemberEntity {
     @JoinColumn(name = "mtnum", referencedColumnName = "mtnum", nullable = false)
     private MemtypeEntity memtype;
 
-    @Column(name = "mid",   nullable = false, length = 100)  private String mid;    // ID
-    @Column(name = "mpw",   nullable = false, length = 255)  private String mpw;    // BCrypt PW
+    @Column(name = "mid",   nullable = false, length = 100 , unique = true)  private String mid;    // ID
+    @Column(name = "mpw",   nullable = false, length = 255)  private String mpw;    // (개발용)평문 또는 BCrypt
     @Column(name = "mname", nullable = false, length = 100)  private String mname;  // 이름
-    @Column(name = "memail", length = 255)                   private String memail; // 이메일 (NULL 허용)
+    @Column(name = "memail", length = 255)                   private String memail; // 이메일 (NULL 가능)
     @Column(name = "mtel",  nullable = false, length = 30)   private String mtel;   // 전화
     @Column(name = "maddr", nullable = false, length = 255)  private String maddr;  // 상세주소
     @Column(name = "mpost", nullable = false)                private Long mpost;    // 우편번호
@@ -40,7 +36,6 @@ public class MemberEntity {
     @Column(name = "mreg",   nullable = false)               private LocalDate mreg;   // 가입일(date)
     @Column(name = "mnic",   length = 100)                   private String mnic;   // 닉네임 (NULL)
 
-    // 감사 필드(운영 편의)
     @Column(name = "created_at", nullable = false) private LocalDateTime createdAt;
     @Column(name = "updated_at", nullable = false) private LocalDateTime updatedAt;
 

@@ -12,11 +12,11 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("member")
-public class MemberApiController {
+public class MemberController {
 
     private final MemberService service;
 
-    public MemberApiController(MemberService service) {
+    public MemberController(MemberService service) {
         this.service = service;
     }
 
