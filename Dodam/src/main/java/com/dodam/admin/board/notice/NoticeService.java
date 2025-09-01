@@ -24,6 +24,6 @@ public class NoticeService {
     public NoticeDTO createNotice(NoticeDTO noticeDTO) {
         NoticeEntity noticeEntity = noticeDTO.toEntity();
         NoticeEntity savedEntity = noticeRepository.save(noticeEntity);
-        return NoticeDTO.fromEntity(savedEntity);
+        return NoticeDTO.fromEntity(savedEntity); 
     }
 }
