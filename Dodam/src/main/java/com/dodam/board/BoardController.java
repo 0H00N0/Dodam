@@ -1,4 +1,4 @@
-package com.dodam.admin.board;
+package com.dodam.board;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

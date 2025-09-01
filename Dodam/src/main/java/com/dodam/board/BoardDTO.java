@@ -1,9 +1,10 @@
-package com.dodam.admin.board;
+package com.dodam.board;
 
-import com.dodam.admin.board.Board;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
+
+import com.dodam.board.Board;
 
 public class BoardDTO {
 

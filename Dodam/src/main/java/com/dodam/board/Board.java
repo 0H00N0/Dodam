@@ -1,4 +1,4 @@
-package com.dodam.admin.board;
+package com.dodam.board;
 
 import jakarta.persistence.*;
 import lombok.Getter;

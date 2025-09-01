@@ -1,6 +1,7 @@
-package com.dodam.admin.board;
+package com.dodam.board;
 
-import com.dodam.admin.board.BoardState;
+import com.dodam.board.BoardState;
+
 import lombok.Getter;
 
 @Getter

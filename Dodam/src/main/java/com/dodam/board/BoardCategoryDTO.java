@@ -1,6 +1,7 @@
-package com.dodam.admin.board;
+package com.dodam.board;
 
-import com.dodam.admin.board.BoardCategory;
+import com.dodam.board.BoardCategory;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

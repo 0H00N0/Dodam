@@ -1,4 +1,4 @@
-package com.dodam.admin.board;
+package com.dodam.board;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -8,15 +8,11 @@ import lombok.Setter;
 @Entity
 @Getter @Setter
 @NoArgsConstructor
-public class BoardCategory {
+public class BoardState {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long bcnum;
+    private Long bsnum;
 
     @Column(nullable = false, unique = true)
-    private String bcname;
-
-    public BoardCategory(String bcname) {
-        this.bcname = bcname;
-    }
+    private String bsname;
 }
