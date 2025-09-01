@@ -1,5 +1,7 @@
 package com.dodam.member.controller;
 
+import java.util.Map;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -53,5 +55,15 @@ public class MemberController {
         if (sid == null) return "redirect:/member/login";
         model.addAttribute("me", service.readByMid(sid));
         return "member/info";
+    }
+    
+    @GetMapping("session")
+    @ResponseBody
+    public Map<String, Object> session(HttpSession session) {
+        String sid = (String) session.getAttribute("sid");
+        return Map.of(
+            "authenticated", sid != null,
+            "username", sid
+        );
     }
 }
