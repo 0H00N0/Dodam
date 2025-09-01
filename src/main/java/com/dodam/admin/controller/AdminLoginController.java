@@ -53,7 +53,7 @@ public class AdminLoginController {
             // userType과 실제 DB role이 일치하는지 검증
             boolean roleMatches = false;
             if ("ADMIN".equals(userType)) {
-                roleMatches = (member.isSuperAdmin() || member.isStaff());
+                roleMatches = (member.isSuperAdmin() || member.isAdmin() || member.isStaff());
             } else if ("DELIVERYMAN".equals(userType)) {
                 roleMatches = member.isDeliveryman();
             }

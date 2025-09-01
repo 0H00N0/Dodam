@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import com.dodam.member.entity.MemberEntity;
 import com.dodam.member.repository.MemberRepository;
 
+import java.util.Optional;
+
 
 @Service
 @RequiredArgsConstructor

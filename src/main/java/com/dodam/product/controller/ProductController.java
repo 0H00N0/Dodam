@@ -1,5 +1,7 @@
 package com.dodam.product.controller;
 
+import com.dodam.admin.entity.AdminEntity;
+import com.dodam.admin.repository.AdminRepository;
 import com.dodam.product.entity.ProductEntity;
 import com.dodam.product.service.ProductService;
 import jakarta.servlet.http.Cookie;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Controller
 @RequestMapping("/admin/product")
@@ -19,6 +22,7 @@ import java.util.Map;
 public class ProductController {
 
     private final ProductService productService;
+    private final AdminRepository adminRepository;
 
     @GetMapping
     public String list(Model model) {
@@ -43,7 +47,13 @@ public class ProductController {
             if (cookies != null) {
                 for (Cookie cookie : cookies) {
                     if ("username".equals(cookie.getName())) {
-                        product.setProcreat(Integer.parseInt(cookie.getValue()));
+                        String username = cookie.getValue();
+                        Optional<AdminEntity> admin = adminRepository.findByUsername(username);
+                        if (admin.isPresent()) {
+                            product.setProcreat(admin.get().getId().intValue());
+                        } else {
+                            throw new Exception("등록자 정보를 찾을 수 없습니다.");
+                        }
                     }
                 }
             }
