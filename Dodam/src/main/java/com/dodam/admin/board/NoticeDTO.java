@@ -1,4 +1,4 @@
-package com.dodam.admin.board.notice;
+package com.dodam.admin.board;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
