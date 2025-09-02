@@ -53,7 +53,7 @@ public class AdminLoginController {
             // userType과 실제 DB role이 일치하는지 검증
             boolean roleMatches = false;
             if ("ADMIN".equals(userType)) {
-                roleMatches = (member.isSuperAdmin() || member.isStaff());
+                roleMatches = (member.isSuperAdmin() || member.isAdmin() || member.isStaff());
             } else if ("DELIVERYMAN".equals(userType)) {
                 roleMatches = member.isDeliveryman();
             }
@@ -132,24 +132,24 @@ public class AdminLoginController {
     /**
      * 관리자 메인
      */
-    @GetMapping("/main")
-    public String main(Model model) {
-        return "admin/main";
+    @GetMapping("/mains")
+    public String mains(Model model) {
+        return "admin/mains";
     }
-
-    /**
-     * 배송 담당자 페이지
-     */
+    @GetMapping("/product/list")
+    public String productlist(Model model) {
+        return "admin/product/list";
+    }
     @GetMapping("/logistics")
     public String logistics(Model model) {
         return "admin/logistics";
     }
-
+    
+    
     @GetMapping("/member/list") 
     public String memberList() {
         return "admin/member/list";
     }
-
     @GetMapping("/member/view")
     public String memberView() {
         return "admin/member/view";

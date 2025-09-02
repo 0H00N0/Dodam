@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<nav th:fragment="adminSidebar" class="admin-sidebar">
+  <div class="label">Management</div>
+  <ul class="menu">
+    <li><a th:href="@{/admin/dashboard}" th:classappend="${activeMenu}=='dashboard' ? ' active'">대시보드</a></li>
+    <li><a th:href="@{/admin/product/list}" th:classappend="${activeMenu}=='product' ? ' active'">상품 관리</a></li>
+    <li><a th:href="@{/admin/product/form}" th:classappend="${activeMenu}=='product-form' ? ' active'">상품 등록</a></li>
+    <li><a th:href="@{/admin/category}" th:classappend="${activeMenu}=='category' ? ' active'">카테고리</a></li>
+    <li><a th:href="@{/admin/order}" th:classappend="${activeMenu}=='order' ? ' active'">주문</a></li>
+    <li><a th:href="@{/admin/member/list}" th:classappend="${activeMenu}=='member' ? ' active'">회원</a></li>
+    <li><a th:href="@{/admin/settings}" th:classappend="${activeMenu}=='settings' ? ' active'">설정</a></li>
+  </ul>
+</nav>
+</body>
+</html>
