@@ -4,8 +4,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import com.dodam.admin.board.notice.NoticeEntity;
-import com.dodam.admin.board.notice.NoticeService;
+import com.dodam.admin.board.NoticeEntity;
+import com.dodam.admin.board.NoticeService;
 
 @Controller
 @RequestMapping("/admin/notices")

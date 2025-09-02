@@ -136,20 +136,20 @@ public class AdminLoginController {
     public String main(Model model) {
         return "admin/main";
     }
-
-    /**
-     * 배송 담당자 페이지
-     */
+    @GetMapping("/product/list")
+    public String productlist(Model model) {
+        return "admin/product/list";
+    }
     @GetMapping("/logistics")
     public String logistics(Model model) {
         return "admin/logistics";
     }
-
+    
+    
     @GetMapping("/member/list") 
     public String memberList() {
         return "admin/member/list";
     }
-
     @GetMapping("/member/view")
     public String memberView() {
         return "admin/member/view";

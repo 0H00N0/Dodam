@@ -25,7 +25,8 @@
 			<label for="categoryId">카테고리 <span class="required">*</span></label>
 			<select id="categoryId" name="category.catenum" required>
 			  <option value="">카테고리를 선택하세요</option>
-			  <option th:each="c : ${categories}" th:value="${c.catenum}" th:text="${c.catename}"></option>
+			  <option th:each="c : ${categories}" th:value="${c.catenum}" th:text="${c.catename}"
+			          th:selected="${product.category != null and product.category.catenum == c.catenum}"></option>
 			</select>
           </div>
 
@@ -186,7 +187,7 @@
 	    if (result.success) {
 	      alert('상품 등록이 완료되었습니다.');
 	      // 또는 showToast(); 후 setTimeout(...)
-	      window.location.href = '/admin/product/list';   // ← 여기서 직접 이동
+	      window.location.href = '/admin/product';   // ← 여기서 직접 이동
 	    } else {
 	      alert(result.message || '등록 실패');
 	    }
