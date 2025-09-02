@@ -1,10 +1,11 @@
 package com.dodam.admin.controller;
 
-import com.dodam.board.NoticeEntity;
-import com.dodam.board.NoticeService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+import com.dodam.admin.board.notice.NoticeEntity;
+import com.dodam.admin.board.notice.NoticeService;
 
 @Controller
 @RequestMapping("/admin/notices")
@@ -36,7 +37,9 @@ public class AdminNoticeController {
 
     @GetMapping("/edit/{id}")
     public String editNoticeForm(@PathVariable("id") Long id, Model model) {
-        model.addAttribute("notice", noticeService.findById(id));
+        NoticeEntity notice = noticeService.findById(id)
+                .orElseThrow(() -> new RuntimeException("Notice not found"));
+        model.addAttribute("notice", notice);
         return "admin/notice/form";
     }
 
