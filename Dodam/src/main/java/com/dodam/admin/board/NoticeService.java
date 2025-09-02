@@ -2,55 +2,79 @@ package com.dodam.admin.board;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class NoticeService {
 
-    public List<NoticeDTO> findAllNotices() {
-        // 임시 데이터 반환 (실제로는 Repository를 통해 DB에서 조회)
-        List<NoticeDTO> notices = new ArrayList<>();
-        
-        NoticeDTO notice1 = NoticeDTO.builder()
-                .id(1L)
-                .title("시스템 점검 안내")
-                .content("시스템 점검으로 인한 서비스 일시 중단 안내드립니다.")
-                .author("관리자")
-                .isActive(true)
-                .createdAt(LocalDateTime.now().minusDays(1))
-                .updatedAt(LocalDateTime.now().minusDays(1))
-                .build();
-                
-        NoticeDTO notice2 = NoticeDTO.builder()
-                .id(2L)
-                .title("새로운 기능 업데이트")
-                .content("새로운 기능이 추가되었습니다.")
-                .author("관리자")
-                .isActive(true)
-                .createdAt(LocalDateTime.now().minusDays(2))
-                .updatedAt(LocalDateTime.now().minusDays(2))
-                .build();
-        
-        notices.add(notice1);
-        notices.add(notice2);
-        
-        return notices;
+    private final NoticeRepository noticeRepository;
+
+    public List<NoticeEntity> findAll() {
+        return noticeRepository.findAllByOrderByCreatedAtDesc();
     }
 
+    public Optional<NoticeEntity> findById(Long id) {
+        return noticeRepository.findById(id);
+    }
+
+    public List<NoticeEntity> findActiveNotices() {
+        return noticeRepository.findByIsActiveTrueOrderByCreatedAtDesc();
+    }
+
+    @Transactional
+    public NoticeEntity save(NoticeEntity notice) {
+        return noticeRepository.save(notice);
+    }
+
+    @Transactional
+    public void deleteById(Long id) {
+        noticeRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void delete(NoticeEntity notice) {
+        noticeRepository.delete(notice);
+    }
+
+    // DTO 변환 메서드들 (API 컨트롤러용)
+    public List<NoticeDTO> findAllNotices() {
+        return findAll().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
     public NoticeDTO createNotice(NoticeDTO noticeDTO) {
-        // 임시 구현 (실제로는 Repository를 통해 DB에 저장)
-        noticeDTO.setId(System.currentTimeMillis()); // 임시 ID 생성
-        noticeDTO.setCreatedAt(LocalDateTime.now());
-        noticeDTO.setUpdatedAt(LocalDateTime.now());
-        
-        if (noticeDTO.getIsActive() == null) {
-            noticeDTO.setIsActive(true);
-        }
-        
-        return noticeDTO;
+        NoticeEntity entity = convertToEntity(noticeDTO);
+        NoticeEntity savedEntity = noticeRepository.save(entity);
+        return convertToDTO(savedEntity);
+    }
+
+    private NoticeDTO convertToDTO(NoticeEntity entity) {
+        return NoticeDTO.builder()
+                .id(entity.getId())
+                .title(entity.getTitle())
+                .content(entity.getContent())
+                .author(entity.getAuthor())
+                .isActive(entity.getIsActive())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .build();
+    }
+
+    private NoticeEntity convertToEntity(NoticeDTO dto) {
+        return NoticeEntity.builder()
+                .id(dto.getId())
+                .title(dto.getTitle())
+                .content(dto.getContent())
+                .author(dto.getAuthor())
+                .isActive(dto.getIsActive())
+                .build();
     }
 }

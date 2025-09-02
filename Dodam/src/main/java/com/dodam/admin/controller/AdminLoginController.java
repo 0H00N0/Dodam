@@ -1,7 +1,7 @@
 package com.dodam.admin.controller;
 
-import com.dodam.admin.entity.AdminEntity;
 import com.dodam.admin.service.AdminService;
+import com.dodam.member.entity.MemberEntity;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -47,16 +47,15 @@ public class AdminLoginController {
                        Model model) {
         try {
             System.out.println("로그인 시도: " + username + ", userType: " + userType);
-            AdminEntity admin = adminService.authenticate(username, password);
-            System.out.println("인증 성공: " + admin.getUsername() + ", Role: " + admin.getRole());
+            MemberEntity member = adminService.authenticate(username, password);
+            System.out.println("인증 성공: " + member.getMid() + ", Role: " + member.getRoleString());
 
             // userType과 실제 DB role이 일치하는지 검증
             boolean roleMatches = false;
             if ("ADMIN".equals(userType)) {
-                roleMatches = (admin.getRole() == com.dodam.admin.entity.AdminRole.ADMIN || 
-                              admin.getRole() == com.dodam.admin.entity.AdminRole.SUPER_ADMIN);
+                roleMatches = (member.isSuperAdmin() || member.isStaff());
             } else if ("DELIVERYMAN".equals(userType)) {
-                roleMatches = (admin.getRole() == com.dodam.admin.entity.AdminRole.DELIVERYMAN);
+                roleMatches = member.isDeliveryman();
             }
             
             System.out.println("Role 매칭 결과: " + roleMatches);
@@ -67,18 +66,18 @@ public class AdminLoginController {
             }
 
             // 쿠키에 사용자 정보 저장
-            Cookie usernameCookie = new Cookie("username", admin.getUsername());
+            Cookie usernameCookie = new Cookie("username", member.getMid());
             usernameCookie.setPath("/");
             usernameCookie.setMaxAge(24 * 60 * 60); // 24시간 유효
             response.addCookie(usernameCookie);
 
-            Cookie roleCookie = new Cookie("role", admin.getRole().name());
+            Cookie roleCookie = new Cookie("role", member.getRoleString());
             roleCookie.setPath("/");
             roleCookie.setMaxAge(24 * 60 * 60); // 24시간 유효
             response.addCookie(roleCookie);
 
-            if (admin.getName() != null) {
-                Cookie nameCookie = new Cookie("name", admin.getName());
+            if (member.getMname() != null) {
+                Cookie nameCookie = new Cookie("name", member.getMname());
                 nameCookie.setPath("/");
                 nameCookie.setMaxAge(24 * 60 * 60); // 24시간 유효
                 response.addCookie(nameCookie);
@@ -86,20 +85,12 @@ public class AdminLoginController {
 
             // 역할에 따른 리다이렉트
             String redirectUrl;
-            switch (admin.getRole()) {
-                case ADMIN:
-                case SUPER_ADMIN:
-                    redirectUrl = "redirect:/admin/main";
-                    break;
-                case DELIVERYMAN:
-                    redirectUrl = "redirect:/admin/logistics";
-                    break;
-                case STAFF:
-                    redirectUrl = "redirect:/admin/dashboard";
-                    break;
-                default:
-                    redirectUrl = "redirect:/admin/dashboard";
-                    break;
+            if (member.isSuperAdmin() || member.isStaff()) {
+                redirectUrl = "redirect:/admin/main";
+            } else if (member.isDeliveryman()) {
+                redirectUrl = "redirect:/admin/logistics";
+            } else {
+                redirectUrl = "redirect:/admin/dashboard";
             }
             
             System.out.println("리다이렉트 URL: " + redirectUrl);
@@ -152,5 +143,25 @@ public class AdminLoginController {
     @GetMapping("/logistics")
     public String logistics(Model model) {
         return "admin/logistics";
+    }
+
+    @GetMapping("/member/list") 
+    public String memberList() {
+        return "admin/member/list";
+    }
+
+    @GetMapping("/member/view")
+    public String memberView() {
+        return "admin/member/view";
+    }
+
+    @GetMapping("/notice/form")
+    public String noticeForm() {
+        return "admin/notice/form";
+    }
+
+    @GetMapping("/notice/list")
+    public String noticeList() {
+        return "admin/notice/list";
     }
 }
