@@ -145,6 +145,11 @@ public class AdminLoginController {
         return "admin/logistics";
     }
 
+    @GetMapping("/product/list") 
+    public String productList() {
+        return "admin/product/list";
+    }
+    
     @GetMapping("/member/list") 
     public String memberList() {
         return "admin/member/list";

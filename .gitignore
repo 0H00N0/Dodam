@@ -62,3 +62,4 @@ out/
 ### VS Code ###
 .vscode/
 >>>>>>> f6e7770 (clone my)
+".claude/settings.local.json" 
