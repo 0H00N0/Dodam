@@ -81,19 +81,6 @@ public class MemberService {
                 .map(MemberDTO::new)   // MemberDTO(MemberEntity e) 생성자 사용
                 .orElse(null);
     }
-<<<<<<< HEAD
-    
-    //회원정보 수정
-    public void updateMember(String mid, MemberDTO dto) {
-        MemberEntity entity = memberRepo.findByMid(mid).orElseThrow();
-        entity.setMemail(dto.getMemail());
-        entity.setMtel(dto.getMtel());
-        entity.setMaddr(dto.getMaddr());
-        entity.setMpost(dto.getMpost());
-        entity.setMnic(dto.getMnic());
-        memberRepo.save(entity);
-    }
-=======
 
 
     // 로그인 검증 등 다른 메서드가 있다면 여기에…
@@ -102,5 +89,4 @@ public class MemberService {
 
     // 헬퍼
     private static boolean isBlank(String s) { return s == null || s.isBlank(); }
->>>>>>> c8a8145 (회원 시큐리티 제거)
 }
