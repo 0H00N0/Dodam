@@ -1,12 +1,14 @@
 package com.dodam.admin.board;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils; 
+import org.springframework.data.domain.*;   
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 
 @Service
 @RequiredArgsConstructor
@@ -76,5 +78,19 @@ public class NoticeService {
                 .author(dto.getAuthor())
                 .isActive(dto.getIsActive())
                 .build();
+    }
+    public List<NoticeDTO> latest(int limit) {
+    	  Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdAt", "id"));
+          Page<NoticeEntity> page = noticeRepository.findAll(pageable);
+
+        return page.getContent().stream()
+                .map(this::toDto)  
+                .toList();
+    }
+    private NoticeDTO toDto(NoticeEntity entity) {  
+        if (entity == null) return null;
+        NoticeDTO dto = new NoticeDTO();
+        BeanUtils.copyProperties(entity, dto);
+        return dto;
     }
 }

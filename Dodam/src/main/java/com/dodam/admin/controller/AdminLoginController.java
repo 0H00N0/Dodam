@@ -132,9 +132,9 @@ public class AdminLoginController {
     /**
      * 관리자 메인
      */
-    @GetMapping("/main")
-    public String main(Model model) {
-        return "admin/main";
+    @GetMapping("/mains")
+    public String mains(Model model) {
+        return "admin/mains";
     }
     @GetMapping("/product/list")
     public String productlist(Model model) {
