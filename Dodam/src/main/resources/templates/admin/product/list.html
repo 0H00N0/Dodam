@@ -31,6 +31,10 @@
     </style>
 </head>
 <body>
+	<div th:replace="admin/fragments/header :: adminHeader"></div>
+	<div class="admin-body">
+	  <div th:replace="admin/fragments/sidebar :: adminSidebar"></div>
+	  <main class="admin-main">
     <h1>상품 목록</h1>
     <a href="/admin/product/form" style="display: inline-block; margin-bottom: 20px; padding: 5px 10px; background-color: #007bff; color: white; text-decoration: none; border-radius: 3px;">상품 추가</a>
 	<a th:href="@{/admin/product/bulk}">엑셀 일괄등록</a>

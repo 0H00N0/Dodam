@@ -58,6 +58,10 @@
     </style>
 </head>
 <body>
+	<div th:replace="admin/fragments/header :: adminHeader"></div>
+	<div class="admin-body">
+	  <div th:replace="admin/fragments/sidebar :: adminSidebar"></div>
+	  <main class="admin-main">
     <div class="header">
         <div class="welcome">관리자 시스템</div>
         <div class="info">관리자 권한으로 로그인되었습니다.</div>
