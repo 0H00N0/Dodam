@@ -7,9 +7,8 @@ import com.dodam.member.entity.MemberEntity;
 public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
     Optional<MemberEntity> findByMid(String mid);
     boolean existsByMid(String mid);
-<<<<<<< Updated upstream
-=======
+
     boolean existsByMemail(String memail);
     
->>>>>>> Stashed changes
+
 }
