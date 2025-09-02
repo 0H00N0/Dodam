@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.dodam.member.dto.MemberDTO;
 import com.dodam.member.entity.LoginmethodEntity;
+import com.dodam.member.entity.MemberEntity;
 import com.dodam.member.entity.MemtypeEntity;
 import com.dodam.member.repository.LoginmethodRepository;
 import com.dodam.member.repository.MemberRepository;
@@ -81,7 +82,6 @@ public class MemberService {
                 .map(MemberDTO::new)   // MemberDTO(MemberEntity e) 생성자 사용
                 .orElse(null);
     }
-<<<<<<< Updated upstream
 
 
     // 로그인 검증 등 다른 메서드가 있다면 여기에…
@@ -90,21 +90,19 @@ public class MemberService {
 
     // 헬퍼
     private static boolean isBlank(String s) { return s == null || s.isBlank(); }
-=======
     
-    //비밀번호 변경
-    public void updatePw(String mid, String currentPw, String newPw) {//id, 원래비번, 새비번
+ // 비밀번호 변경
+    public void updatePw(String mid, String currentPw, String newPw) {
         MemberEntity member = memberRepo.findByMid(mid)
             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
         // 현재 비밀번호 확인
-        if (!encoder.matches(currentPw, member.getMpw())) {
+        if (!currentPw.equals(member.getMpw())) {
             throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
         }
 
-        // 새 비밀번호 저장
-        member.setMpw(encoder.encode(newPw));
+        // 새 비밀번호 저장 
+        member.setMpw(newPw);
         memberRepo.save(member);
     }
->>>>>>> Stashed changes
 }
