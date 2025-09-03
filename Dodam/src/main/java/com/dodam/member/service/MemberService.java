@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.dodam.member.dto.MemberDTO;
 import com.dodam.member.entity.LoginmethodEntity;
+import com.dodam.member.entity.MemberEntity;
 import com.dodam.member.entity.MemtypeEntity;
 import com.dodam.member.repository.LoginmethodRepository;
 import com.dodam.member.repository.MemberRepository;
@@ -91,4 +92,25 @@ public class MemberService {
     // 헬퍼
     private static boolean isBlank(String s) { return s == null || s.isBlank(); }
 
+    
+    //회원정보 수정
+    public void updateProfile(Long memberId, MemberDTO dto) {
+        MemberEntity entity = memberRepo.findById(memberId)
+            .orElseThrow(() -> new RuntimeException("회원 없음"));
+        entity.setMemail(dto.getMemail());
+        entity.setMtel(dto.getMtel());
+        entity.setMaddr(dto.getMaddr());
+        entity.setMnic(dto.getMnic());
+        // ...필요한 필드 추가...
+        memberRepo.save(entity);
+    }
+    
+    //비밀번호 수정
+    public void changePw(Long memberId, String newPassword) {
+    	MemberEntity entity = memberRepo.findById(memberId)
+            .orElseThrow(() -> new RuntimeException("회원 없음"));
+    	entity.setMpw(newPassword); // 평문 저장);
+        memberRepo.save(entity);
+    }
+    
 }
