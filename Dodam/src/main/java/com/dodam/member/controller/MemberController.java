@@ -87,4 +87,15 @@ public class MemberController {
         return ResponseEntity.ok(Map.of("exists", exists));
     }
     
+    @GetMapping(value = "/me", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> me(HttpSession session) {
+        String sid = (String) session.getAttribute("sid");
+        if (sid == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "unauthenticated"));
+        }
+        return ResponseEntity.ok(memberService.me(sid));
+    }
+
+    
 }

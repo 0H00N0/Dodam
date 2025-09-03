@@ -97,4 +97,11 @@ public class MemberService {
     	memberRepository.save(entity);
     }
     
+    public MemberDTO me(String mid) {
+        var e = memberRepository.findByMid(mid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 없음"));
+        return new MemberDTO(e);
+    }
+
+    
 }
