@@ -86,7 +86,5 @@ public class MemberController {
         boolean exists = memberService.exists(mid);
         return ResponseEntity.ok(Map.of("exists", exists));
     }
-      
-    
     
 }
