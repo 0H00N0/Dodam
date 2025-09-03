@@ -30,9 +30,9 @@ public class MemberEntity {
     @Column(name = "mname", nullable = false, length = 100)  private String mname;  // 이름
     @Column(name = "memail", length = 255)                   private String memail; // 이메일 (NULL 가능)
     @Column(name = "mtel",  nullable = false, length = 30)   private String mtel;   // 전화
-    @Column(name = "maddr", nullable = false, length = 255)  private String maddr;  // 상세주소
-    @Column(name = "mpost", nullable = false)                private Long mpost;    // 우편번호
-    @Column(name = "mbirth", nullable = false)               private LocalDate mbirth; // 생일
+    @Column(name = "maddr", nullable = true, length = 255)  private String maddr;  // 상세주소
+    @Column(name = "mpost", nullable = true)                private Long mpost;    // 우편번호
+    @Column(name = "mbirth", nullable = true)               private LocalDate mbirth; // 생일
     @Column(name = "mreg",   nullable = false)               private LocalDate mreg;   // 가입일(date)
     @Column(name = "mnic",   length = 100)                   private String mnic;   // 닉네임 (NULL)
 

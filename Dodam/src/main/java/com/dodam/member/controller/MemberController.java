@@ -3,101 +3,61 @@ package com.dodam.member.controller;
 import com.dodam.member.dto.MemberDTO;
 import com.dodam.member.service.MemberService;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("member")
+@RequestMapping("/member")
+@RequiredArgsConstructor
 public class MemberController {
 
-    private final MemberService service;
+    private final MemberService memberService;
 
-    public MemberController(MemberService service) {
-        this.service = service;
+    // 프론트 규약: /member/signup  (JSON)
+    @PostMapping(
+            value = "/signup",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<?> signup(@Valid @RequestBody MemberDTO dto) {
+        memberService.signup(dto); // 내부에서 중복 검사/예외 던짐
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("message", "signup ok"));
     }
 
-    // === 요청/응답 유틸 ===
-    private ResponseEntity<Map<String, Object>> ok(Object body) {
-        Map<String, Object> res = new HashMap<>();
-        res.put("ok", true);
-        if (body != null) res.put("data", body);
-        return ResponseEntity.ok(res);
+    // 프론트 규약: /member/loginForm  (JSON)
+    // 추후 호환 위해 /login 도 함께 허용하고 싶으면 아래처럼 배열로 추가 가능
+    // @PostMapping(value = {"/loginForm", "/login"}, ...)
+    @PostMapping(
+            value = "/loginForm",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<?> login(@RequestBody MemberDTO dto, HttpSession session) {
+        var member = memberService.login(dto.getMid(), dto.getMpw()); // 실패 시 예외
+        session.setAttribute("sid", member.getMid()); // React axios withCredentials=true 일 때 JSESSIONID 쿠키 저장
+        return ResponseEntity.ok(Map.of(
+                "message", "login ok",
+                "mid", member.getMid(),
+                "mname", member.getMname()
+        ));
     }
 
-    private ResponseEntity<Map<String, Object>> fail(int status, String message) {
-        Map<String, Object> res = new HashMap<>();
-        res.put("ok", false);
-        res.put("message", message);
-        return ResponseEntity.status(status).body(res);
-    }
-
-    // === 로그인 요청 DTO (프론트 JSON 키와 일치) ===
-    public static class LoginReq {
-        public String mid;
-        public String mpw;
-    }
-
-    // === 세션 상태 조회 ===
-    @GetMapping("session")
-    public ResponseEntity<?> session(HttpSession session) {
-        String sid = (String) session.getAttribute("sid");
-        if (sid == null) return ok(null);
-
-        Map<String, Object> me = new HashMap<>();
-        me.put("mid", sid);
-        me.put("roleCode", session.getAttribute("sroleCode"));
-        me.put("role", session.getAttribute("srole"));
-        me.put("joinWay", session.getAttribute("sjoin"));
-        return ok(me);
-    }
-
-    // === 회원가입(JSON) ===
-    @PostMapping(value = "signup", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> signupJson(@RequestBody MemberDTO dto) {
-        try {
-            // MemberDTO 필드명은 프론트에서 보내는 JSON 키(mid, mpw, name, phone 등)와 일치해야 바인딩됩니다.
-            service.signup(dto);
-            return ok(null);
-        } catch (IllegalArgumentException e) {
-            return fail(400, e.getMessage());
-        } catch (Exception e) {
-            return fail(500, "signup failed");
-        }
-    }
-
-    // === 로그인(JSON) ===
-    @PostMapping(value = "login", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> loginJson(@RequestBody LoginReq req, HttpSession session) {
-        if (req == null || req.mid == null || req.mpw == null) {
-            return fail(400, "mid/mpw required");
-        }
-        boolean success = service.loginCheck(req.mid, req.mpw);
-        if (!success) {
-            return fail(401, "invalid credentials");
-        }
-
-        // 세션 세팅
-        session.setAttribute("sid", req.mid);
-
-        // 선택: 유저 부가정보 세션에 저장 (서비스에 구현돼 있다고 가정)
-        MemberDTO me = service.readByMid(req.mid);
-        if (me != null) {
-            session.setAttribute("sroleCode", me.getRoleCode());
-            session.setAttribute("srole", me.getRoleName());
-            session.setAttribute("sjoin", me.getJoinWay());
-        }
-
-        return ok(null);
-    }
-
-    // === 로그아웃(JSON) ===
-    @PostMapping("logout")
+    // (선택) 로그아웃
+    @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpSession session) {
         session.invalidate();
-        return ok(null);
+        return ResponseEntity.ok(Map.of("message", "logout ok"));
+    }
+
+    // (선택) 아이디 중복 체크: /member/check-id?mid=abc
+    @GetMapping(value = "/check-id", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> checkId(@RequestParam String mid) {
+        boolean exists = memberService.exists(mid);
+        return ResponseEntity.ok(Map.of("exists", exists));
     }
 }
