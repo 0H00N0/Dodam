@@ -94,8 +94,8 @@ public class MemberService {
 
     
     //회원정보 수정
-    public void updateProfile(Long memberId, MemberDTO dto) {
-        MemberEntity entity = memberRepo.findById(memberId)
+    public void updateProfile(String sid, MemberDTO dto) {
+        MemberEntity entity = memberRepo.findByMid(sid)
             .orElseThrow(() -> new RuntimeException("회원 없음"));
         entity.setMemail(dto.getMemail());
         entity.setMtel(dto.getMtel());
@@ -106,8 +106,8 @@ public class MemberService {
     }
     
     //비밀번호 수정
-    public void changePw(Long memberId, String newPassword) {
-    	MemberEntity entity = memberRepo.findById(memberId)
+    public void changePw(String sid, String newPassword) {
+    	MemberEntity entity = memberRepo.findByMid(sid)
             .orElseThrow(() -> new RuntimeException("회원 없음"));
     	entity.setMpw(newPassword); // 평문 저장);
         memberRepo.save(entity);

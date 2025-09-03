@@ -107,7 +107,7 @@ public class MemberController {
     //회원정보 수정
     @PutMapping("/me")
     public ResponseEntity<?> updateProfile(@RequestBody MemberDTO dto, HttpSession session) {
-        Long sid = (Long) session.getAttribute("sid");
+        String sid = (String) session.getAttribute("sid");
         if (sid == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
         }
@@ -118,12 +118,13 @@ public class MemberController {
     // 비밀번호 수정
     @PutMapping("/me/password")
     public ResponseEntity<?> changePw(@RequestBody MemberDTO dto, HttpSession session) {
-        Long sid = (Long) session.getAttribute("sid");
+        String sid = (String)session.getAttribute("sid");
         if (sid == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
         }
         service.changePw(sid, dto.getMpw());
         return ResponseEntity.ok().build();
     }
+      
     
 }
