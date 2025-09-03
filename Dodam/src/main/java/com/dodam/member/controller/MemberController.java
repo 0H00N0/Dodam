@@ -3,17 +3,13 @@ package com.dodam.member.controller;
 import com.dodam.member.dto.MemberDTO;
 import com.dodam.member.service.MemberService;
 import jakarta.servlet.http.HttpSession;
-<<<<<<< HEAD
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
-=======
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
->>>>>>> 7d10f4adf4389fcca9a5fdd89100e877690ec59b
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -69,26 +65,5 @@ public class MemberController {
         return ResponseEntity.ok(Map.of("exists", exists));
     }
     
-    //회원정보 수정
-    @PutMapping("/me")
-    public ResponseEntity<?> updateProfile(@RequestBody MemberDTO dto, HttpSession session) {
-        Long sid = (Long) session.getAttribute("sid");
-        if (sid == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
-        }
-        service.updateProfile(sid, dto);
-        return ResponseEntity.ok().build();
-    }
-
-    // 비밀번호 수정
-    @PutMapping("/me/password")
-    public ResponseEntity<?> changePw(@RequestBody MemberDTO dto, HttpSession session) {
-        Long sid = (Long) session.getAttribute("sid");
-        if (sid == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
-        }
-        service.changePw(sid, dto.getMpw());
-        return ResponseEntity.ok().build();
-    }
     
 }

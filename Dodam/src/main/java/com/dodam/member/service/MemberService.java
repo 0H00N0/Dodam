@@ -64,11 +64,9 @@ public class MemberService {
         return new MemberDTO(e);
     }
 
-<<<<<<< HEAD
     public boolean exists(String mid) {
         return memberRepository.existsByMid(mid);
     }
-=======
 
 
     // 로그인 검증 등 다른 메서드가 있다면 여기에…
@@ -79,25 +77,4 @@ public class MemberService {
     private static boolean isBlank(String s) { return s == null || s.isBlank(); }
 
     
-    //회원정보 수정
-    public void updateProfile(Long memberId, MemberDTO dto) {
-        MemberEntity entity = memberRepo.findById(memberId)
-            .orElseThrow(() -> new RuntimeException("회원 없음"));
-        entity.setMemail(dto.getMemail());
-        entity.setMtel(dto.getMtel());
-        entity.setMaddr(dto.getMaddr());
-        entity.setMnic(dto.getMnic());
-        // ...필요한 필드 추가...
-        memberRepo.save(entity);
-    }
-    
-    //비밀번호 수정
-    public void changePw(Long memberId, String newPassword) {
-    	MemberEntity entity = memberRepo.findById(memberId)
-            .orElseThrow(() -> new RuntimeException("회원 없음"));
-    	entity.setMpw(newPassword); // 평문 저장);
-        memberRepo.save(entity);
-    }
-    
->>>>>>> 7d10f4adf4389fcca9a5fdd89100e877690ec59b
 }
