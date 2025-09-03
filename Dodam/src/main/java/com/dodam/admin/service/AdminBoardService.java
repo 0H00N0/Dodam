@@ -155,7 +155,7 @@ public class AdminBoardService {
      */
     @Transactional(readOnly = true)
     public List<BoardCategoryResponse> getAllCategories() {
-        return boardCategoryRepository.findAll().stream() // ✨ 변경점: findAllWithBoardCount() -> findAll()
+        return boardCategoryRepository.findAll().stream()
             .map(this::convertToBoardCategoryResponse)
             .collect(Collectors.toList());
     }
@@ -215,7 +215,7 @@ public class AdminBoardService {
      */
     @Transactional(readOnly = true)
     public List<BoardStateResponse> getAllStates() {
-        return boardStateRepository.findAll().stream() // ✨ 변경점: findAllWithBoardCount() -> findAll()
+        return boardStateRepository.findAll().stream() 
             .map(this::convertToBoardStateResponse)
             .collect(Collectors.toList());
     }
@@ -305,7 +305,6 @@ public class AdminBoardService {
         return BoardCategoryResponse.builder()
             .bcnum(category.getBcnum())
             .bcname(category.getBcname())
-            // ✨ 변경점: .boardCount(...) 라인 삭제
             .build();
     }
 
@@ -313,7 +312,6 @@ public class AdminBoardService {
         return BoardStateResponse.builder()
             .bsnum(state.getBsnum())
             .bsname(state.getBsname())
-            // ✨ 변경점: .boardCount(...) 라인 삭제
             .build();
     }
 }
