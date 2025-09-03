@@ -9,5 +9,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PlansRepository extends JpaRepository<PlansEntity, Long>{
 	Optional<PlansEntity> findByPlanCode(String planCode);
-	List<PlansEntity> findByActiveTrue();
+	List<PlansEntity> findByPlanActiveTrue();
 }

@@ -2,9 +2,11 @@ package com.dodam.plan.dto;
 
 import com.dodam.plan.Entity.PlansEntity;
 import com.dodam.plan.Entity.PlanBenefitEntity;
+import com.dodam.plan.Entity.PlanPriceEntity;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,22 +19,24 @@ public class PlanDTO {
 	private Long planId;
 	private String planCode;
 	private String planName; //플랜 이름 Basic, Standard ...
-	private Boolean planActive;
-	private LocalDateTime planCreate;
+	private Boolean active;
 	
-	//혜택
-	private BigDecimal pbPriceCap; //월 대여료 상한
-	private String pbNote;
+	// 혜택
+    private String benefitNote;
+    private String benefitCap; // 금액 문자열로 내려도 되고 BigDecimal 로 내려도 됨
 	
-	public static PlanDTO of(PlansEntity plan, PlanBenefitEntity benefit) {
+	private List<PlanPriceDTO> prices;
+	
+	public static PlanDTO of(PlansEntity plan, PlanBenefitEntity benefit, List<PlanPriceEntity> prices) {
 		return PlanDTO.builder()
 				.planId(plan.getPlanId())
 				.planCode(plan.getPlanCode())
 				.planName(plan.getPlanName().getPlanName())
-				.planActive(plan.getPlanActive())
-				.planCreate(plan.getPlanCreate())
-				.pbPriceCap(benefit != null ? benefit.getPbPriceCap() : null)
-				.pbNote(benefit != null ? benefit.getPbNote() : null)
+				.active(plan.getPlanActive())
+				.benefitNote(benefit != null ? benefit.getPbNote() : null)
+				.benefitCap(benefit != null ? benefit.getPbPriceCap().toPlainString() : null)
+				.prices(prices != null ? prices.stream().map(PlanPriceDTO::of).collect(Collectors.toList()) : null)
 				.build();
+				
 	}
 }
