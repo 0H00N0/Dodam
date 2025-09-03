@@ -3,8 +3,11 @@ package com.dodam.member.controller;
 import com.dodam.member.dto.MemberDTO;
 import com.dodam.member.service.MemberService;
 import jakarta.servlet.http.HttpSession;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -100,4 +103,27 @@ public class MemberController {
         session.invalidate();
         return ok(null);
     }
+    
+    //회원정보 수정
+    @PutMapping("/me")
+    public ResponseEntity<?> updateProfile(@RequestBody MemberDTO dto, HttpSession session) {
+        Long sid = (Long) session.getAttribute("sid");
+        if (sid == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+        service.updateProfile(sid, dto);
+        return ResponseEntity.ok().build();
+    }
+
+    // 비밀번호 수정
+    @PutMapping("/me/password")
+    public ResponseEntity<?> changePw(@RequestBody MemberDTO dto, HttpSession session) {
+        Long sid = (Long) session.getAttribute("sid");
+        if (sid == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+        service.changePw(sid, dto.getMpw());
+        return ResponseEntity.ok().build();
+    }
+    
 }
