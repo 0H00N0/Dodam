@@ -1,0 +1,69 @@
+package com.dodam.member.controller;
+
+import com.dodam.member.dto.MemberDTO;
+import com.dodam.member.service.MemberService;
+import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.*;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/member")
+@RequiredArgsConstructor
+public class MemberController {
+
+    private final MemberService memberService;
+
+    // 프론트 규약: /member/signup  (JSON)
+    @PostMapping(
+            value = "/signup",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<?> signup(@Valid @RequestBody MemberDTO dto) {
+        memberService.signup(dto); // 내부에서 중복 검사/예외 던짐
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("message", "signup ok"));
+    }
+
+    // 프론트 규약: /member/loginForm  (JSON)
+    // 추후 호환 위해 /login 도 함께 허용하고 싶으면 아래처럼 배열로 추가 가능
+    // @PostMapping(value = {"/loginForm", "/login"}, ...)
+    @PostMapping(
+            value = "/loginForm",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<?> login(@RequestBody MemberDTO dto, HttpSession session) {
+        var member = memberService.login(dto.getMid(), dto.getMpw()); // 실패 시 예외
+        session.setAttribute("sid", member.getMid()); // React axios withCredentials=true 일 때 JSESSIONID 쿠키 저장
+        return ResponseEntity.ok(Map.of(
+                "message", "login ok",
+                "mid", member.getMid(),
+                "mname", member.getMname()
+        ));
+    }
+
+    // (선택) 로그아웃
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpSession session) {
+        session.invalidate();
+        return ResponseEntity.ok(Map.of("message", "logout ok"));
+    }
+
+    // (선택) 아이디 중복 체크: /member/check-id?mid=abc
+    @GetMapping(value = "/check-id", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> checkId(@RequestParam String mid) {
+        boolean exists = memberService.exists(mid);
+        return ResponseEntity.ok(Map.of("exists", exists));
+    }
+    
+    
+}
