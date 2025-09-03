@@ -87,4 +87,17 @@ public class MemberController {
         return ResponseEntity.ok(Map.of("exists", exists));
     }
     
+ // 이름+전화번호로 아이디 찾기
+    @GetMapping("/find-id/tel")
+    public ResponseEntity<?> findIdByNameAndTel(@RequestParam String mname, @RequestParam String mtel) {
+        String mid = memberService.findIdByNameAndTel(mname, mtel);
+        return ResponseEntity.ok(Map.of("mid", mid));
+    }
+
+    // 이름+이메일로 아이디 찾기
+    @GetMapping("/find-id/email")
+    public ResponseEntity<?> findIdByNameAndEmail(@RequestParam String mname, @RequestParam String memail) {
+        String mid = memberService.findIdByNameAndEmail(mname, memail);
+        return ResponseEntity.ok(Map.of("mid", mid));
+    }
 }
