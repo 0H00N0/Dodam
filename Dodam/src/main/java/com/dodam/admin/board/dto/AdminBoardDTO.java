@@ -71,9 +71,13 @@ public class AdminBoardDTO {
         private Long bsnum;
         private LocalDateTime startDate;
         private LocalDateTime endDate;
+        @Builder.Default
         private int page = 0;
+        @Builder.Default
         private int size = 20;
+        @Builder.Default
         private String sortBy = "bdate";
+        @Builder.Default
         private String sortDir = "desc";
     }
 

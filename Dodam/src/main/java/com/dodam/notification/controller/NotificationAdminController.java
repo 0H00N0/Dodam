@@ -4,15 +4,29 @@ import com.dodam.notification.entity.NotificationType;
 import com.dodam.notification.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
+@Controller
+@RequestMapping("/admin/notifications")
+public class NotificationAdminController {
+    
+    @Autowired
+    private NotificationService notificationService;
+    
+    @GetMapping
+    public String viewPage() {
+        return "admin/notifications/notifications";
+    }
+}
+
 @RestController
 @RequestMapping("/api/admin/notifications")
 @CrossOrigin(origins = "*")
-public class NotificationAdminController {
+class NotificationApiController {
     
     @Autowired
     private NotificationService notificationService;
