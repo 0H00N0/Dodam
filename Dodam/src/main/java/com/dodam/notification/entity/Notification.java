@@ -3,7 +3,7 @@ package com.dodam.notification.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-@Entity
+@Entity //알림 센터 엔티티
 @Table(name = "notifications")
 public class Notification {
     
