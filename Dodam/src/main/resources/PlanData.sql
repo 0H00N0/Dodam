@@ -167,9 +167,3 @@ WHERE p.planCode = 'VIP'
   AND NOT EXISTS (SELECT 1 FROM planPrice x
                   WHERE x.planId = p.planId AND x.ptermId = t.ptermId AND x.ppriceBilMode = 'PREPAID_TERM');
                   
-                  
-UPDATE planBenefit SET pbNote = '이 플랜을 사용하는 고객님 저희의 VIP이십니다!' where pbId = 1;
-UPDATE planBenefit SET pbNote = '도담도담의 저렴 플랜! 부담 없이 사용해보세요!' where pbId = 2;
-UPDATE planBenefit SET pbNote = '베이직 플랜에 5,000원만 추가하면 대여 상한이 두배!' where pbId = 3;
-UPDATE planBenefit SET pbNote = '월 3만원이 안되는 금액으로 누릴 수 있는 최대혜택!' where pbId = 4;
-UPDATE planBenefit SET pbNote = '월 10만원이 안되는 가격에 혜택은 최대로!' where pbId = 5;
