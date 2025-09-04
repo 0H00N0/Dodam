@@ -3,45 +3,45 @@
 -- 전제: 테이블명이 CamelCase (planName / plans / planBenefit / planTerms / planPrice)
 -- 주의: IDENTITY/PK 컬럼은 DB가 자동 생성 → MERGE 시 ID 컬럼을 명시하지 않음
 
-/* 1) 플랜 이름(Basic/Standard/Premium/Family/VIP) */
-MERGE INTO planName (planName)
-KEY (planName)
-VALUES ('Basic'),
-       ('Standard'),
-       ('Premium'),
-       ('Family'),
+/* 1) 플랜 이름 사전 (중복이면 MERGE로 upsert) */
+MERGE INTO PLANNAME (PLANNAME) KEY (PLANNAME)
+VALUES ('베이직'),
+       ('스탠다드'),
+       ('프리미엄'),
+       ('패밀리'),
        ('VIP');
 
-/* 2) 플랜 마스터: planCode = BASIC/STANDARD/PREMIUM/FAMILY/VIP */
-INSERT INTO plans (planNameId, planCode, planActive, planCreate)
-SELECT pn.planNameId, 'BASIC', TRUE, CURRENT_TIMESTAMP
-FROM planName pn
-WHERE pn.planName = 'Basic'
-  AND NOT EXISTS (SELECT 1 FROM plans p WHERE p.planCode = 'BASIC');
+/* 2) 플랜 마스터: planCode는 카멜/파스칼 케이스로 저장 ('Basic' 등) */
+INSERT INTO PLANS (PLANNAMEID, PLANCODE, PLANACTIVE, PLANCREATE)
+SELECT PN.PLANNAMEID, 'Basic', TRUE, CURRENT_TIMESTAMP
+FROM PLANNAME PN
+WHERE PN.PLANNAME = '베이직'
+  AND NOT EXISTS (SELECT 1 FROM PLANS P WHERE P.PLANCODE = 'Basic');
 
-INSERT INTO plans (planNameId, planCode, planActive, planCreate)
-SELECT pn.planNameId, 'STANDARD', TRUE, CURRENT_TIMESTAMP
-FROM planName pn
-WHERE pn.planName = 'Standard'
-  AND NOT EXISTS (SELECT 1 FROM plans p WHERE p.planCode = 'STANDARD');
+INSERT INTO PLANS (PLANNAMEID, PLANCODE, PLANACTIVE, PLANCREATE)
+SELECT PN.PLANNAMEID, 'Standard', TRUE, CURRENT_TIMESTAMP
+FROM PLANNAME PN
+WHERE PN.PLANNAME = '스탠다드'
+  AND NOT EXISTS (SELECT 1 FROM PLANS P WHERE P.PLANCODE = 'Standard');
 
-INSERT INTO plans (planNameId, planCode, planActive, planCreate)
-SELECT pn.planNameId, 'PREMIUM', TRUE, CURRENT_TIMESTAMP
-FROM planName pn
-WHERE pn.planName = 'Premium'
-  AND NOT EXISTS (SELECT 1 FROM plans p WHERE p.planCode = 'PREMIUM');
+INSERT INTO PLANS (PLANNAMEID, PLANCODE, PLANACTIVE, PLANCREATE)
+SELECT PN.PLANNAMEID, 'Premium', TRUE, CURRENT_TIMESTAMP
+FROM PLANNAME PN
+WHERE PN.PLANNAME = '프리미엄'
+  AND NOT EXISTS (SELECT 1 FROM PLANS P WHERE P.PLANCODE = 'Premium');
 
-INSERT INTO plans (planNameId, planCode, planActive, planCreate)
-SELECT pn.planNameId, 'FAMILY', TRUE, CURRENT_TIMESTAMP
-FROM planName pn
-WHERE pn.planName = 'Family'
-  AND NOT EXISTS (SELECT 1 FROM plans p WHERE p.planCode = 'FAMILY');
+INSERT INTO PLANS (PLANNAMEID, PLANCODE, PLANACTIVE, PLANCREATE)
+SELECT PN.PLANNAMEID, 'Family', TRUE, CURRENT_TIMESTAMP
+FROM PLANNAME PN
+WHERE PN.PLANNAME = '패밀리'
+  AND NOT EXISTS (SELECT 1 FROM PLANS P WHERE P.PLANCODE = 'Family');
 
-INSERT INTO plans (planNameId, planCode, planActive, planCreate)
-SELECT pn.planNameId, 'VIP', TRUE, CURRENT_TIMESTAMP
-FROM planName pn
-WHERE pn.planName = 'VIP'
-  AND NOT EXISTS (SELECT 1 FROM plans p WHERE p.planCode = 'VIP');
+INSERT INTO PLANS (PLANNAMEID, PLANCODE, PLANACTIVE, PLANCREATE)
+SELECT PN.PLANNAMEID, 'VIP', TRUE, CURRENT_TIMESTAMP
+FROM PLANNAME PN
+WHERE PN.PLANNAME = 'VIP'
+  AND NOT EXISTS (SELECT 1 FROM PLANS P WHERE P.PLANCODE = 'VIP');
+
 
 /* 3) 플랜 혜택(월 대여료 상한) — pbNote NOT NULL 충족 */
 INSERT INTO planBenefit (planId, pbPriceCap, pbNote)
@@ -166,3 +166,4 @@ JOIN planTerms t ON t.ptermMonth IN (3,6,12)
 WHERE p.planCode = 'VIP'
   AND NOT EXISTS (SELECT 1 FROM planPrice x
                   WHERE x.planId = p.planId AND x.ptermId = t.ptermId AND x.ppriceBilMode = 'PREPAID_TERM');
+                  
