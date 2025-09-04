@@ -19,9 +19,9 @@ public class MemberEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long mnum;
 
-    // FK: 가입번호
+    // FK: 가입방법
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "lmnum", referencedColumnName = "lmunm", nullable = false)
+    @JoinColumn(name = "lmnum", referencedColumnName = "lmnum", nullable = false)
     private LoginmethodEntity loginmethod;
 
     // FK: 회원타입(0/1/2/3)
@@ -29,7 +29,7 @@ public class MemberEntity {
     @JoinColumn(name = "mtnum", referencedColumnName = "mtnum", nullable = false)
     private MemtypeEntity memtype;
 
-    @Column(name = "mid",   nullable = false, length = 100)  private String mid;    // ID
+    @Column(name = "mid",   nullable = false, length = 100, unique = true)  private String mid;    // ID
     @Column(name = "mpw",   nullable = false, length = 255)  private String mpw;    // BCrypt PW
     @Column(name = "mname", nullable = false, length = 100)  private String mname;  // 이름
     @Column(name = "memail", length = 255)                   private String memail; // 이메일 (NULL 허용)
@@ -75,5 +75,9 @@ public class MemberEntity {
 
     public boolean isDeliveryman() {
         return "DELIVERYMAN".equalsIgnoreCase(getRoleString());
+    }
+    
+    public boolean isUser() {
+        return "USER".equalsIgnoreCase(getRoleString());
     }
 }

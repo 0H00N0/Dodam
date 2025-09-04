@@ -2,6 +2,7 @@ package com.dodam.member.repository;
 
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+<<<<<<< HEAD
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -19,3 +20,15 @@ public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
 }
 
 
+=======
+import com.dodam.member.entity.MemberEntity;
+
+public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
+    Optional<MemberEntity> findByMid(String mid);
+    boolean existsByMid(String mid);
+
+    boolean existsByMemail(String memail);
+    
+
+}
+>>>>>>> origin/chan
