@@ -70,7 +70,7 @@ public class MemberController {
     }
 
     // 비밀번호 수정
-    @PutMapping("/me/changePw")
+    @PutMapping("/changePw")
     public ResponseEntity<?> changePw(@RequestBody MemberDTO dto, HttpSession session) {
         String sid = (String)session.getAttribute("sid");
         if (sid == null) {
