@@ -18,6 +18,5 @@ public class DodamApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(DodamApplication.class, args);
 	}
-
 }
 

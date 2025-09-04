@@ -33,13 +33,13 @@
 
     <!-- 상단 메뉴 -->
     <nav class="admin-nav">
-      <a th:href="@{/admin/notices}"
+      <a th:href="@{/admin/notice/list}"
          th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI != null
            and #httpServletRequest.requestURI.startsWith('/admin/notice/list')} ? ' active'">공지</a>
       <a th:href="@{/admin/product/list}"
-         th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/products')} ? ' active'">상품관리</a>
+         th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/product')} ? ' active'">상품관리</a>
       <a th:href="@{/admin/members}"
-         th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/members')} ? ' active'">회원관리</a>
+         th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/member')} ? ' active'">회원관리</a>
       <a th:href="@{/admin/orders}"
          th:classappend="${#httpServletRequest != null and #httpServletRequest.requestURI.startsWith('/admin/orders')} ? ' active'">주문관리</a>
       <a th:href="@{/admin/payments}"
