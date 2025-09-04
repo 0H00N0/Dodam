@@ -103,5 +103,18 @@ public class MemberService {
         return new MemberDTO(e);
     }
 
+    //이름,전화번호로 id 찾기
+    public String findIdByNameAndTel(String mname, String mtel) {
+        return memberRepository.findByMnameAndMtel(mname, mtel)
+            .map(MemberEntity::getMid)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
+    }
+
+    //이름, 이메일로 id 찾기
+    public String findIdByNameAndEmail(String mname, String memail) {
+        return memberRepository.findByMnameAndMemail(mname, memail)
+            .map(MemberEntity::getMid)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
+    }
     
 }
