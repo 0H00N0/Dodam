@@ -149,4 +149,6 @@ public class Brand {
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
     }
+    @OneToMany(mappedBy = "brand", orphanRemoval = false)
+    private List<Product> product = new ArrayList<>();
 }

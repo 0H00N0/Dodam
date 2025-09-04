@@ -219,4 +219,7 @@ public class Product {
             .filter(review -> !review.isDeleted())
             .count();
     }
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "BRAND_ID") // PRODUCT.BRAND_ID FK
+    private Brand brand;
 }

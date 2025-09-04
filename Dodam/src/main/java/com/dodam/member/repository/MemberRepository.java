@@ -2,7 +2,6 @@ package com.dodam.member.repository;
 
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
-<<<<<<< HEAD
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -18,17 +17,3 @@ public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
     @Query("SELECT m FROM MemberEntity m WHERE m.mid = :mid AND m.memtype.roleName IN ('ADMIN', 'SUPERADMIN', 'STAFF')")
     Optional<MemberEntity> findAdminByMid(@Param("mid") String mid);
 }
-
-
-=======
-import com.dodam.member.entity.MemberEntity;
-
-public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
-    Optional<MemberEntity> findByMid(String mid);
-    boolean existsByMid(String mid);
-
-    boolean existsByMemail(String memail);
-    
-
-}
->>>>>>> origin/chan

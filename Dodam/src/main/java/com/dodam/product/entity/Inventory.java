@@ -1,6 +1,6 @@
 package com.dodam.product.entity;
 
-import com.dodam.product.exception.InsufficientStockException;
+// import com.dodam.product.exception.InsufficientStockException; // Temporarily disabled
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -86,11 +86,11 @@ public class Inventory {
      * 재고를 감소시킵니다 (예약 처리).
      * 
      * @param amount 감소할 수량
-     * @throws InsufficientStockException 재고가 부족한 경우
+     * @throws RuntimeException 재고가 부족한 경우
      */
     public void decreaseStock(int amount) {
         if (availableQuantity < amount) {
-            throw new InsufficientStockException(
+            throw new RuntimeException(
                 String.format("재고가 부족합니다. 요청수량: %d, 사용가능수량: %d", amount, availableQuantity)
             );
         }
@@ -147,11 +147,11 @@ public class Inventory {
      * 재고를 예약합니다.
      * 
      * @param amount 예약할 수량
-     * @throws InsufficientStockException 사용 가능한 재고가 부족한 경우
+     * @throws RuntimeException 사용 가능한 재고가 부족한 경우
      */
     public void reserveStock(int amount) {
         if (availableQuantity < amount) {
-            throw new InsufficientStockException(
+            throw new RuntimeException(
                 String.format("재고가 부족합니다. 요청수량: %d, 사용가능수량: %d", amount, availableQuantity)
             );
         }
@@ -208,11 +208,11 @@ public class Inventory {
      * 사용 가능한 재고를 감소시킵니다.
      * 
      * @param amount 감소할 수량
-     * @throws InsufficientStockException 사용 가능한 재고가 부족한 경우
+     * @throws RuntimeException 사용 가능한 재고가 부족한 경우
      */
     public void decreaseAvailableStock(int amount) {
         if (availableQuantity < amount) {
-            throw new InsufficientStockException(
+            throw new RuntimeException(
                 String.format("재고가 부족합니다. 요청수량: %d, 사용가능수량: %d", amount, availableQuantity)
             );
         }
