@@ -77,4 +77,44 @@ public class MemberService {
     private static boolean isBlank(String s) { return s == null || s.isBlank(); }
 
     
+    //회원정보 수정
+    public void updateProfile(String sid, MemberDTO dto) {
+        MemberEntity entity = memberRepository.findByMid(sid)
+            .orElseThrow(() -> new RuntimeException("회원 없음"));
+        entity.setMemail(dto.getMemail());
+        entity.setMtel(dto.getMtel());
+        entity.setMaddr(dto.getMaddr());
+        entity.setMnic(dto.getMnic());
+        // ...필요한 필드 추가...
+        memberRepository.save(entity);
+    }
+    
+    //비밀번호 수정
+    public void changePw(String sid, String newPassword) {
+    	MemberEntity entity = memberRepository.findByMid(sid)
+            .orElseThrow(() -> new RuntimeException("회원 없음"));
+    	entity.setMpw(newPassword); // 평문 저장);
+    	memberRepository.save(entity);
+    }
+    
+    public MemberDTO me(String mid) {
+        var e = memberRepository.findByMid(mid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 없음"));
+        return new MemberDTO(e);
+    }
+
+    //이름,전화번호로 id 찾기
+    public String findIdByNameAndTel(String mname, String mtel) {
+        return memberRepository.findByMnameAndMtel(mname, mtel)
+            .map(MemberEntity::getMid)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
+    }
+
+    //이름, 이메일로 id 찾기
+    public String findIdByNameAndEmail(String mname, String memail) {
+        return memberRepository.findByMnameAndMemail(mname, memail)
+            .map(MemberEntity::getMid)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
+    }
+    
 }

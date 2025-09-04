@@ -57,6 +57,28 @@ public class MemberController {
         session.invalidate();
         return ResponseEntity.ok(Map.of("message", "logout ok"));
     }
+    
+    //회원정보 수정
+    @PutMapping("/me")
+    public ResponseEntity<?> updateProfile(@RequestBody MemberDTO dto, HttpSession session) {
+        String sid = (String) session.getAttribute("sid");
+        if (sid == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+        memberService.updateProfile(sid, dto);
+        return ResponseEntity.ok().build();
+    }
+
+    // 비밀번호 수정
+    @PutMapping("/me/password")
+    public ResponseEntity<?> changePw(@RequestBody MemberDTO dto, HttpSession session) {
+        String sid = (String)session.getAttribute("sid");
+        if (sid == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+        memberService.changePw(sid, dto.getMpw());
+        return ResponseEntity.ok().build();
+    }
 
     // (선택) 아이디 중복 체크: /member/check-id?mid=abc
     @GetMapping(value = "/check-id", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -65,5 +87,28 @@ public class MemberController {
         return ResponseEntity.ok(Map.of("exists", exists));
     }
     
+    @GetMapping(value = "/me", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> me(HttpSession session) {
+        String sid = (String) session.getAttribute("sid");
+        if (sid == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "unauthenticated"));
+        }
+        return ResponseEntity.ok(memberService.me(sid));
+    }
+
     
+ // 이름+전화번호로 아이디 찾기
+    @GetMapping("/findid/tel")
+    public ResponseEntity<?> findIdByNameAndTel(@RequestParam String mname, @RequestParam String mtel) {
+        String mid = memberService.findIdByNameAndTel(mname, mtel);
+        return ResponseEntity.ok(Map.of("mid", mid));
+    }
+
+    // 이름+이메일로 아이디 찾기
+    @GetMapping("/findid/email")
+    public ResponseEntity<?> findIdByNameAndEmail(@RequestParam String mname, @RequestParam String memail) {
+        String mid = memberService.findIdByNameAndEmail(mname, memail);
+        return ResponseEntity.ok(Map.of("mid", mid));
+    }
 }
