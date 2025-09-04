@@ -59,7 +59,7 @@ public class MemberController {
     }
     
     //회원정보 수정
-    @PutMapping("/me")
+    @PutMapping("/updateProfile")
     public ResponseEntity<?> updateProfile(@RequestBody MemberDTO dto, HttpSession session) {
         String sid = (String) session.getAttribute("sid");
         if (sid == null) {
@@ -70,7 +70,7 @@ public class MemberController {
     }
 
     // 비밀번호 수정
-    @PutMapping("/me/password")
+    @PutMapping("/me/changePw")
     public ResponseEntity<?> changePw(@RequestBody MemberDTO dto, HttpSession session) {
         String sid = (String)session.getAttribute("sid");
         if (sid == null) {
