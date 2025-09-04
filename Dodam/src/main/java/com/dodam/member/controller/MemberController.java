@@ -1,69 +1,115 @@
 package com.dodam.member.controller;
 
-import java.util.Map;
-
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
 import com.dodam.member.dto.MemberDTO;
 import com.dodam.member.service.MemberService;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.*;
 
-@Controller
-@RequestMapping("member")
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/member")
 @RequiredArgsConstructor
 public class MemberController {
 
-    private final MemberService service;
+    private final MemberService memberService;
 
-    @GetMapping("signup")
-    public String signupForm(){ return "member/signupForm"; }
-
-    @PostMapping("signup")
-    public String signup(MemberDTO dto){
-        service.signup(dto);
-        return "redirect:/";
+    // 프론트 규약: /member/signup  (JSON)
+    @PostMapping(
+            value = "/signup",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<?> signup(@Valid @RequestBody MemberDTO dto) {
+        memberService.signup(dto); // 내부에서 중복 검사/예외 던짐
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("message", "signup ok"));
     }
 
-    @GetMapping("login")
-    public String loginForm(){ return "member/loginForm"; }
-
-    @PostMapping("login")
-    public String login(@RequestParam String mid,
-                        @RequestParam String mpw,
-                        HttpSession session){
-        if (service.loginCheck(mid, mpw)) {
-            session.setAttribute("sid", mid);
-            var me = service.readByMid(mid);
-            session.setAttribute("sroleCode", me.getRoleCode()); // 0/1/2/3
-            session.setAttribute("srole", me.getRoleName());     // 일반 / SuperAdmin / ...
-            session.setAttribute("sjoin", me.getJoinWay());      // local 등
-        }
-        return "redirect:/";
+    // 프론트 규약: /member/loginForm  (JSON)
+    // 추후 호환 위해 /login 도 함께 허용하고 싶으면 아래처럼 배열로 추가 가능
+    // @PostMapping(value = {"/loginForm", "/login"}, ...)
+    @PostMapping(
+            value = "/loginForm",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<?> login(@RequestBody MemberDTO dto, HttpSession session) {
+        var member = memberService.login(dto.getMid(), dto.getMpw()); // 실패 시 예외
+        session.setAttribute("sid", member.getMid()); // React axios withCredentials=true 일 때 JSESSIONID 쿠키 저장
+        return ResponseEntity.ok(Map.of(
+                "message", "login ok",
+                "mid", member.getMid(),
+                "mname", member.getMname()
+        ));
     }
 
-    @GetMapping("logout")
-    public String logout(HttpSession session){
+    // (선택) 로그아웃
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpSession session) {
         session.invalidate();
-        return "redirect:/";
-    }
-
-    @GetMapping("info")
-    public String info(HttpSession session, Model model){
-        String sid = (String) session.getAttribute("sid");
-        if (sid == null) return "redirect:/member/login";
-        model.addAttribute("me", service.readByMid(sid));
-        return "member/info";
+        return ResponseEntity.ok(Map.of("message", "logout ok"));
     }
     
-    @GetMapping("session")
-    @ResponseBody
-    public Map<String, Object> session(HttpSession session) {
+    //회원정보 수정
+    @PutMapping("/me")
+    public ResponseEntity<?> updateProfile(@RequestBody MemberDTO dto, HttpSession session) {
         String sid = (String) session.getAttribute("sid");
-        return Map.of(
-            "authenticated", sid != null,
-            "username", sid
-        );
+        if (sid == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+        memberService.updateProfile(sid, dto);
+        return ResponseEntity.ok().build();
+    }
+
+    // 비밀번호 수정
+    @PutMapping("/me/password")
+    public ResponseEntity<?> changePw(@RequestBody MemberDTO dto, HttpSession session) {
+        String sid = (String)session.getAttribute("sid");
+        if (sid == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+        memberService.changePw(sid, dto.getMpw());
+        return ResponseEntity.ok().build();
+    }
+
+    // (선택) 아이디 중복 체크: /member/check-id?mid=abc
+    @GetMapping(value = "/check-id", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> checkId(@RequestParam String mid) {
+        boolean exists = memberService.exists(mid);
+        return ResponseEntity.ok(Map.of("exists", exists));
+    }
+    
+    @GetMapping(value = "/me", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> me(HttpSession session) {
+        String sid = (String) session.getAttribute("sid");
+        if (sid == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "unauthenticated"));
+        }
+        return ResponseEntity.ok(memberService.me(sid));
+    }
+
+    
+ // 이름+전화번호로 아이디 찾기
+    @GetMapping("/findid/tel")
+    public ResponseEntity<?> findIdByNameAndTel(@RequestParam String mname, @RequestParam String mtel) {
+        String mid = memberService.findIdByNameAndTel(mname, mtel);
+        return ResponseEntity.ok(Map.of("mid", mid));
+    }
+
+    // 이름+이메일로 아이디 찾기
+    @GetMapping("/findid/email")
+    public ResponseEntity<?> findIdByNameAndEmail(@RequestParam String mname, @RequestParam String memail) {
+        String mid = memberService.findIdByNameAndEmail(mname, memail);
+        return ResponseEntity.ok(Map.of("mid", mid));
+
     }
 }
