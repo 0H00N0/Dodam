@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin/boards") // Base URL for all admin board-related APIs
+@RequestMapping("/admin/board") // Base URL for all admin board-related APIs
 @RequiredArgsConstructor
 public class AdminBoardController {
 

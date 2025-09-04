@@ -40,50 +40,64 @@ public class AdminLoginController {
      * 관리자 로그인 처리
      */
     @PostMapping("/login")
-    public String login(@RequestParam(value = "username") String username,
-                       @RequestParam(value = "password") String password,
-                       @RequestParam(value = "userType") String userType,
-                       HttpServletResponse response,
-                       Model model) {
+    public String login(@RequestParam("username") String username,
+                        @RequestParam("password") String password,
+                        @RequestParam("mtnum") int mtnum,   // 숫자 그대로 받음
+                        HttpServletResponse response,
+                        Model model) {
         try {
-            System.out.println("로그인 시도: " + username + ", userType: " + userType);
+            System.out.println("로그인 시도: " + username + ", userType: " + mtnum);
+
             MemberEntity member = adminService.authenticate(username, password);
+            if (member == null) {
+                model.addAttribute("errorMessage", "아이디 또는 비밀번호가 올바르지 않습니다.");
+                return "admin/login";
+            }
+
             System.out.println("인증 성공: " + member.getMid() + ", Role: " + member.getRoleString());
 
-            // userType과 실제 DB role이 일치하는지 검증
+            // 숫자 기반 역할 매칭
             boolean roleMatches = false;
-            if ("ADMIN".equals(userType)) {
-                roleMatches = (member.isSuperAdmin() || member.isAdmin() || member.isStaff());
-            } else if ("DELIVERYMAN".equals(userType)) {
-                roleMatches = member.isDeliveryman();
+            switch (mtnum) {
+                case 1: // 슈퍼 관리자
+                    roleMatches = member.isSuperAdmin();
+                    break;
+                case 2: // 스태프
+                    roleMatches = member.isStaff();
+                    break;
+                case 3: // 배송 담당자
+                    roleMatches = member.isDeliveryman();
+                    break;
+                default:
+                    roleMatches = false;
             }
-            
+
             System.out.println("Role 매칭 결과: " + roleMatches);
-            
+
             if (!roleMatches) {
                 model.addAttribute("errorMessage", "선택한 사용자 유형과 계정 권한이 일치하지 않습니다.");
                 return "admin/login";
             }
 
-            // 쿠키에 사용자 정보 저장
-            Cookie usernameCookie = new Cookie("username", member.getMid());
+            // (쿠키 저장 부분 동일)
+            Cookie usernameCookie = new Cookie("username", safeCookieValue(member.getMid()));
             usernameCookie.setPath("/");
-            usernameCookie.setMaxAge(24 * 60 * 60); // 24시간 유효
+            usernameCookie.setMaxAge(24 * 60 * 60);
             response.addCookie(usernameCookie);
 
-            Cookie roleCookie = new Cookie("role", member.getRoleString());
+            Cookie roleCookie = new Cookie("role", safeCookieValue(member.getRoleString()));
             roleCookie.setPath("/");
-            roleCookie.setMaxAge(24 * 60 * 60); // 24시간 유효
+            roleCookie.setMaxAge(24 * 60 * 60);
             response.addCookie(roleCookie);
 
             if (member.getMname() != null) {
-                Cookie nameCookie = new Cookie("name", member.getMname());
+                Cookie nameCookie = new Cookie("name", safeCookieValue(member.getMname()));
                 nameCookie.setPath("/");
-                nameCookie.setMaxAge(24 * 60 * 60); // 24시간 유효
+                nameCookie.setMaxAge(24 * 60 * 60);
                 response.addCookie(nameCookie);
             }
 
-            // 역할에 따른 리다이렉트
+            // 리다이렉트 경로
             String redirectUrl;
             if (member.isSuperAdmin() || member.isStaff()) {
                 redirectUrl = "redirect:/admin/main";
@@ -92,7 +106,7 @@ public class AdminLoginController {
             } else {
                 redirectUrl = "redirect:/admin/dashboard";
             }
-            
+
             System.out.println("리다이렉트 URL: " + redirectUrl);
             return redirectUrl;
 
@@ -101,6 +115,7 @@ public class AdminLoginController {
             return "admin/login";
         }
     }
+
 
     /**
      * 관리자 로그아웃 처리
@@ -129,39 +144,21 @@ public class AdminLoginController {
         return "admin/dashboard";
     }
 
-    /**
-     * 관리자 메인
-     */
-    @GetMapping("/mains")
-    public String mains(Model model) {
-        return "admin/mains";
-    }
-    @GetMapping("/product/list")
-    public String productlist(Model model) {
-        return "admin/product/list";
-    }
+    
     @GetMapping("/logistics")
     public String logistics(Model model) {
         return "admin/logistics";
     }
     
-    
-    @GetMapping("/member/list") 
-    public String memberList() {
-        return "admin/member/list";
-    }
-    @GetMapping("/member/view")
-    public String memberView() {
-        return "admin/member/view";
-    }
-
-    @GetMapping("/notice/form")
-    public String noticeForm() {
-        return "admin/notice/form";
+    /**
+     * 쿠키 값에 사용할 수 있는 안전한 문자열로 변환
+     */
+    private String safeCookieValue(String value) {
+        if (value == null) {
+            return "";
+        }
+        // 쿠키에서 문제가 될 수 있는 특수문자들을 처리
+        return value.replaceAll("[;,\\s]", "_");
     }
 
-    @GetMapping("/notice/list")
-    public String noticeList() {
-        return "admin/notice/list";
-    }
 }
