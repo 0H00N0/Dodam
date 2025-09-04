@@ -45,31 +45,31 @@ WHERE PN.PLANNAME = 'VIP'
 
 /* 3) 플랜 혜택(월 대여료 상한) — pbNote NOT NULL 충족 */
 INSERT INTO planBenefit (planId, pbPriceCap, pbNote)
-SELECT p.planId, 75000.00, '월 대여료 상한: 75,000 KRW'
+SELECT p.planId, 75000.00, '도담도담의 저렴 플랜! 낮은 가격으로 부담 없이 사용해보세요!'
 FROM plans p
-WHERE p.planCode='BASIC'
+WHERE p.planCode='Basic'
   AND NOT EXISTS (SELECT 1 FROM planBenefit b WHERE b.planId = p.planId);
 
 INSERT INTO planBenefit (planId, pbPriceCap, pbNote)
-SELECT p.planId, 150000.00, '월 대여료 상한: 150,000 KRW'
+SELECT p.planId, 150000.00, '베이직 플랜에 5,000원만 추가하면 대여 상한이 두배!'
 FROM plans p
-WHERE p.planCode='STANDARD'
+WHERE p.planCode='Standard'
   AND NOT EXISTS (SELECT 1 FROM planBenefit b WHERE b.planId = p.planId);
 
 INSERT INTO planBenefit (planId, pbPriceCap, pbNote)
-SELECT p.planId, 250000.00, '월 대여료 상한: 250,000 KRW'
+SELECT p.planId, 250000.00, '월 3만원이 안되는 금액으로 누릴 수 있는 최대혜택!'
 FROM plans p
-WHERE p.planCode='PREMIUM'
+WHERE p.planCode='Premium'
   AND NOT EXISTS (SELECT 1 FROM planBenefit b WHERE b.planId = p.planId);
 
 INSERT INTO planBenefit (planId, pbPriceCap, pbNote)
-SELECT p.planId, 1150000.00, '월 대여료 상한: 1,150,000 KRW'
+SELECT p.planId, 1150000.00, '월 10만원이 안되지만 혜택은 최대로!'
 FROM plans p
-WHERE p.planCode='FAMILY'
+WHERE p.planCode='Family'
   AND NOT EXISTS (SELECT 1 FROM planBenefit b WHERE b.planId = p.planId);
 
 INSERT INTO planBenefit (planId, pbPriceCap, pbNote)
-SELECT p.planId, 2000000.00, '월 대여료 상한: 2,000,000 KRW'
+SELECT p.planId, 2000000.00, '이 플랜을 사용하는 고객님 저희의 VIP이십니다!'
 FROM plans p
 WHERE p.planCode='VIP'
   AND NOT EXISTS (SELECT 1 FROM planBenefit b WHERE b.planId = p.planId);
@@ -90,7 +90,7 @@ INSERT INTO planPrice (planId, ptermId, ppriceBilMode, ppriceAmount, ppriceCurr,
 SELECT p.planId, t.ptermId, 'MONTHLY', 14900.00, 'KRW', TRUE, CURRENT_TIMESTAMP
 FROM plans p
 JOIN planTerms t ON t.ptermMonth = 1
-WHERE p.planCode = 'BASIC'
+WHERE p.planCode = 'Basic'
   AND NOT EXISTS (SELECT 1 FROM planPrice x
                   WHERE x.planId = p.planId AND x.ptermId = t.ptermId AND x.ppriceBilMode = 'MONTHLY');
 
@@ -98,7 +98,7 @@ INSERT INTO planPrice (planId, ptermId, ppriceBilMode, ppriceAmount, ppriceCurr,
 SELECT p.planId, t.ptermId, 'MONTHLY', 19900.00, 'KRW', TRUE, CURRENT_TIMESTAMP
 FROM plans p
 JOIN planTerms t ON t.ptermMonth = 1
-WHERE p.planCode = 'STANDARD'
+WHERE p.planCode = 'Standard'
   AND NOT EXISTS (SELECT 1 FROM planPrice x
                   WHERE x.planId = p.planId AND x.ptermId = t.ptermId AND x.ppriceBilMode = 'MONTHLY');
 
@@ -106,7 +106,7 @@ INSERT INTO planPrice (planId, ptermId, ppriceBilMode, ppriceAmount, ppriceCurr,
 SELECT p.planId, t.ptermId, 'MONTHLY', 25900.00, 'KRW', TRUE, CURRENT_TIMESTAMP
 FROM plans p
 JOIN planTerms t ON t.ptermMonth = 1
-WHERE p.planCode = 'PREMIUM'
+WHERE p.planCode = 'Premium'
   AND NOT EXISTS (SELECT 1 FROM planPrice x
                   WHERE x.planId = p.planId AND x.ptermId = t.ptermId AND x.ppriceBilMode = 'MONTHLY');
 
@@ -114,7 +114,7 @@ INSERT INTO planPrice (planId, ptermId, ppriceBilMode, ppriceAmount, ppriceCurr,
 SELECT p.planId, t.ptermId, 'MONTHLY', 89000.00, 'KRW', TRUE, CURRENT_TIMESTAMP
 FROM plans p
 JOIN planTerms t ON t.ptermMonth = 1
-WHERE p.planCode = 'FAMILY'
+WHERE p.planCode = 'Family'
   AND NOT EXISTS (SELECT 1 FROM planPrice x
                   WHERE x.planId = p.planId AND x.ptermId = t.ptermId AND x.ppriceBilMode = 'MONTHLY');
 
@@ -131,7 +131,7 @@ INSERT INTO planPrice (planId, ptermId, ppriceBilMode, ppriceAmount, ppriceCurr,
 SELECT p.planId, t.ptermId, 'PREPAID_TERM', 14900.00 * t.ptermMonth, 'KRW', TRUE, CURRENT_TIMESTAMP
 FROM plans p
 JOIN planTerms t ON t.ptermMonth IN (3,6,12)
-WHERE p.planCode = 'BASIC'
+WHERE p.planCode = 'Basic'
   AND NOT EXISTS (SELECT 1 FROM planPrice x
                   WHERE x.planId = p.planId AND x.ptermId = t.ptermId AND x.ppriceBilMode = 'PREPAID_TERM');
 
@@ -139,7 +139,7 @@ INSERT INTO planPrice (planId, ptermId, ppriceBilMode, ppriceAmount, ppriceCurr,
 SELECT p.planId, t.ptermId, 'PREPAID_TERM', 19900.00 * t.ptermMonth, 'KRW', TRUE, CURRENT_TIMESTAMP
 FROM plans p
 JOIN planTerms t ON t.ptermMonth IN (3,6,12)
-WHERE p.planCode = 'STANDARD'
+WHERE p.planCode = 'Standard'
   AND NOT EXISTS (SELECT 1 FROM planPrice x
                   WHERE x.planId = p.planId AND x.ptermId = t.ptermId AND x.ppriceBilMode = 'PREPAID_TERM');
 
@@ -147,7 +147,7 @@ INSERT INTO planPrice (planId, ptermId, ppriceBilMode, ppriceAmount, ppriceCurr,
 SELECT p.planId, t.ptermId, 'PREPAID_TERM', 25900.00 * t.ptermMonth, 'KRW', TRUE, CURRENT_TIMESTAMP
 FROM plans p
 JOIN planTerms t ON t.ptermMonth IN (3,6,12)
-WHERE p.planCode = 'PREMIUM'
+WHERE p.planCode = 'Premium'
   AND NOT EXISTS (SELECT 1 FROM planPrice x
                   WHERE x.planId = p.planId AND x.ptermId = t.ptermId AND x.ppriceBilMode = 'PREPAID_TERM');
 
@@ -155,7 +155,7 @@ INSERT INTO planPrice (planId, ptermId, ppriceBilMode, ppriceAmount, ppriceCurr,
 SELECT p.planId, t.ptermId, 'PREPAID_TERM', 89000.00 * t.ptermMonth, 'KRW', TRUE, CURRENT_TIMESTAMP
 FROM plans p
 JOIN planTerms t ON t.ptermMonth IN (3,6,12)
-WHERE p.planCode = 'FAMILY'
+WHERE p.planCode = 'Family'
   AND NOT EXISTS (SELECT 1 FROM planPrice x
                   WHERE x.planId = p.planId AND x.ptermId = t.ptermId AND x.ppriceBilMode = 'PREPAID_TERM');
 
@@ -167,3 +167,9 @@ WHERE p.planCode = 'VIP'
   AND NOT EXISTS (SELECT 1 FROM planPrice x
                   WHERE x.planId = p.planId AND x.ptermId = t.ptermId AND x.ppriceBilMode = 'PREPAID_TERM');
                   
+                  
+UPDATE planBenefit SET pbNote = '이 플랜을 사용하는 고객님 저희의 VIP이십니다!' where pbId = 1;
+UPDATE planBenefit SET pbNote = '도담도담의 저렴 플랜! 부담 없이 사용해보세요!' where pbId = 2;
+UPDATE planBenefit SET pbNote = '베이직 플랜에 5,000원만 추가하면 대여 상한이 두배!' where pbId = 3;
+UPDATE planBenefit SET pbNote = '월 3만원이 안되는 금액으로 누릴 수 있는 최대혜택!' where pbId = 4;
+UPDATE planBenefit SET pbNote = '월 10만원이 안되는 가격에 혜택은 최대로!' where pbId = 5;
