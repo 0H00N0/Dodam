@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>공지사항 목록</title>
+</head>
+<body>
+    <h1>공지사항 목록</h1>
+    <a href="/admin/notices/add">공지사항 추가</a>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>제목</th>
+                <th>작성일</th>
+                <th>고정</th>
+                <th>관리</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="notice : ${notices}">
+                <td th:text="${notice.id}"></td>
+                <td th:text="${notice.title}"></td>
+                <td th:text="${notice.createdAt}"></td>
+                <td th:text="${notice.pinned}"></td>
+                <td>
+                    <a th:href="@{/admin/notices/edit/{id}(id=${notice.id})}">수정</a>
+                    <a th:href="@{/admin/notices/delete/{id}(id=${notice.id})}">삭제</a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>
