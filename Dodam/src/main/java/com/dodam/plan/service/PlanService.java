@@ -3,6 +3,7 @@ package com.dodam.plan.service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import org.springframework.stereotype.Service;
 
@@ -44,10 +45,10 @@ public class PlanService {
 	}
 	
 	public PlanDTO getByCode(String code) {
-		PlansEntity plan = pr.findByPlanCode(code)
-							.orElseThrow(() -> new IllegalArgumentException("플랜을 찾을 수 없습니다: " + code));
-		PlanBenefitEntity benefit = pbr.findFirstByPlan(plan).orElse(null);
-		var prices = ppr.findByPlan_PlanIdAndPpriceActiveTrue(plan.getPlanId());
-		return PlanDTO.of(plan, benefit, prices);
+	    PlansEntity plan = pr.findByPlanCodeIgnoreCase(code)   // ← 케이스 무시
+	        .orElseThrow(() -> new NoSuchElementException("플랜을 찾을 수 없습니다: " + code)); // ← 404로 보낼 예정
+	    PlanBenefitEntity benefit = pbr.findFirstByPlan(plan).orElse(null);
+	    var prices = ppr.findByPlan_PlanIdAndPpriceActiveTrue(plan.getPlanId());
+	    return PlanDTO.of(plan, benefit, prices);
 	}
 }
