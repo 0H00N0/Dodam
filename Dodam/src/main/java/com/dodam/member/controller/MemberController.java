@@ -58,6 +58,17 @@ public class MemberController {
         return ResponseEntity.ok(Map.of("message", "logout ok"));
     }
     
+ // 회원정보 조회
+    @GetMapping("/api/member/me")
+    public ResponseEntity<?> getProfile(HttpSession session) {
+        String sid = (String) session.getAttribute("sid");
+        if (sid == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+        MemberDTO member = memberService.me(sid);
+        return ResponseEntity.ok(member);
+    }
+    
     //회원정보 수정
     @PutMapping("/updateProfile")
     public ResponseEntity<?> updateProfile(@RequestBody MemberDTO dto, HttpSession session) {
@@ -69,15 +80,19 @@ public class MemberController {
         return ResponseEntity.ok().build();
     }
 
-    // 비밀번호 수정
+ // 비밀번호 변경
     @PutMapping("/changePw")
-    public ResponseEntity<?> changePw(@RequestBody MemberDTO dto, HttpSession session) {
-        String sid = (String)session.getAttribute("sid");
+    public ResponseEntity<String> changePassword(
+            HttpSession session,
+            @RequestParam String currentPassword,
+            @RequestParam String newPassword) {
+        String sid = (String) session.getAttribute("sid");
         if (sid == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
         }
-        memberService.changePw(sid, dto.getMpw());
-        return ResponseEntity.ok().build();
+
+        memberService.changePw(sid, currentPassword, newPassword);
+        return ResponseEntity.ok("비밀번호가 변경되었습니다.");
     }
 
     // (선택) 아이디 중복 체크: /member/check-id?mid=abc

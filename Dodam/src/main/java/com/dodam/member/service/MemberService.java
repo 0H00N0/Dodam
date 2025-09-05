@@ -86,11 +86,16 @@ public class MemberService {
         memberRepository.save(entity);
     }
 
-    public void changePw(String sid, String newPassword) {
+    public void changePw(String sid, String currentPassword, String newPassword) {
         MemberEntity entity = memberRepository.findByMid(sid)
-            .orElseThrow(() -> new RuntimeException("회원 없음"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 없음"));
 
-        // ✅ 새 비밀번호 해시 저장
+        // 현재 비밀번호 검증
+        if (!passwordEncoder.matches(currentPassword, entity.getMpw())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        // 새 비밀번호 해시 저장
         entity.setMpw(passwordEncoder.encode(newPassword));
         memberRepository.save(entity);
     }
