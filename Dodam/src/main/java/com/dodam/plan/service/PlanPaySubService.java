@@ -6,24 +6,27 @@ import org.springframework.stereotype.Service;
 
 import com.dodam.member.repository.MemberRepository;
 import com.dodam.plan.Entity.*;
-import com.dodam.plan.enums.*;
 import com.dodam.plan.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
+import com.dodam.plan.enums.PlanEnums.PiStatus;
+import com.dodam.plan.enums.PlanEnums.PmBillingMode;
+import com.dodam.plan.enums.PlanEnums.PmStatus;
+
 @Service @RequiredArgsConstructor
 public class PlanPaySubService {
-  private final PlanMemberRepo memberRepo;
-  private final PlanInvoiceRepo invoiceRepo;
+  private final PlanMemberRepository memberRepo;
+  private final PlanInvoiceRepository invoiceRepo;
   private final MemberRepository memberRepo2;
-  private final PlanPaymentRepo paymentRepo;
+  private final PlanPaymentRepository paymentRepo;
   private final PlanPriceRepository priceRepo;
   private final PlansRepository plansRepo;
   private final PlanTermsRepository termsRepo;
 
   @Transactional
   public PlanMember start(Long mnum, Long planId, Long ppriceId, Long ptermId, Long payId,
-                          PmBillingMode mode, BigDecimal firstAmount) {
+             PmBillingMode mode, BigDecimal firstAmount) {
 
     var member = memberRepo2.findById(mnum).orElseThrow();
     var plan   = plansRepo.findById(planId).orElseThrow();

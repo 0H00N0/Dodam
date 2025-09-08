@@ -1,6 +1,6 @@
 package com.dodam.plan.Entity;
 
-import com.dodam.plan.enums.PattResult;
+import com.dodam.plan.enums.PlanEnums.PattResult;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;

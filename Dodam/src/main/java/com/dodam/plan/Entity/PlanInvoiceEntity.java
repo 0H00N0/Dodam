@@ -1,6 +1,6 @@
 package com.dodam.plan.Entity;
 
-import com.dodam.plan.enums.PiStatus;
+import com.dodam.plan.enums.PlanEnums.PiStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;

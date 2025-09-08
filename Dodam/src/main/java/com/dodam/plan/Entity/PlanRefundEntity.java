@@ -1,6 +1,10 @@
 package com.dodam.plan.Entity;
 
 import com.dodam.plan.enums.*;
+import com.dodam.plan.enums.PlanEnums.PrefMethod;
+import com.dodam.plan.enums.PlanEnums.PrefStatus;
+import com.dodam.plan.enums.PlanEnums.PrefType;
+
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;

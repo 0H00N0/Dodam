@@ -2,15 +2,16 @@ package com.dodam.plan.service;
 
 import org.springframework.stereotype.Service;
 import com.dodam.plan.Entity.*;
-import com.dodam.plan.enums.*;
+import com.dodam.plan.enums.PlanEnums.PattResult;
+import com.dodam.plan.enums.PlanEnums.PiStatus;
 import com.dodam.plan.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service @RequiredArgsConstructor
 public class PlanBillingService {
-  private final PlanInvoiceRepo invoiceRepo;
-  private final PlanAttemptRepo attemptRepo;
+  private final PlanInvoiceRepository invoiceRepo;
+  private final PlanAttemptRepository attemptRepo;
 
   @Transactional
   public void recordAttempt(Long piId, boolean success, String failReason, String respUid, String receiptUrl, String respJson) {

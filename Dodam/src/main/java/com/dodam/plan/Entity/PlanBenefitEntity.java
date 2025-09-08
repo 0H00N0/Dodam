@@ -1,5 +1,8 @@
 package com.dodam.plan.Entity;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -14,5 +17,6 @@ public class PlanBenefitEntity {
   @JoinColumn(name="planId", nullable=false, foreignKey=@ForeignKey(name="fk_benefit_plan"))
   private PlansEntity plan;
 
-  // (필요 시 여기에 혜택 상세 필드 추가)
+  @Column(nullable=true,precision=11, scale=2) private BigDecimal pbPriceCap;
+  @Lob private String pbNote;
 }

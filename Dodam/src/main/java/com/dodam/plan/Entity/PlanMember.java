@@ -1,7 +1,9 @@
 package com.dodam.plan.Entity;
 
 import com.dodam.member.entity.MemberEntity;
-import com.dodam.plan.enums.*;
+import com.dodam.plan.enums.PlanEnums.PmBillingMode;
+import com.dodam.plan.enums.PlanEnums.PmStatus;
+
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;

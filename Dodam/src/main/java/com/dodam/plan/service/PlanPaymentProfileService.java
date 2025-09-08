@@ -4,7 +4,7 @@ import org.springframework.stereotype.Service;
 
 import com.dodam.member.repository.MemberRepository;
 import com.dodam.plan.Entity.PlanPaymentEntity;
-import com.dodam.plan.repository.PlanPaymentRepo;
+import com.dodam.plan.repository.PlanPaymentRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class PlanPaymentProfileService {
-	private final PlanPaymentRepo paymentRepo;
+	private final PlanPaymentRepository paymentRepo;
 	private final MemberRepository memberRepo;
 	
 	@Transactional
