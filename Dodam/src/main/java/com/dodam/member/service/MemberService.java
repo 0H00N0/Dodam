@@ -92,9 +92,10 @@ public class MemberService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 없음"));
 
         // 현재 비밀번호 검증
-        if (!entity.getMpw().equals(dto.getCurrentPw())) {
+        if (!passwordEncoder.matches(dto.getCurrentPw(), entity.getMpw())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "현재 비밀번호가 일치하지 않습니다.");
         }
+        entity.setMpw(passwordEncoder.encode(dto.getNewPw()));
 
         // 새 비밀번호 저장
         entity.setMpw(passwordEncoder.encode(dto.getNewPw()));
