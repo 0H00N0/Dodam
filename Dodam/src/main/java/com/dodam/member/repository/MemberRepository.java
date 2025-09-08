@@ -12,18 +12,21 @@ import org.springframework.stereotype.Repository;
 import com.dodam.member.entity.*;
 @Repository
 public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
+
     Optional<MemberEntity> findByMid(String mid);
     boolean existsByMid(String mid);
     boolean existsByMemail(String memail);
 
     // 관리자만 조회 (ADMIN, SUPERADMIN, STAFF)
-    @Query("SELECT m FROM MemberEntity m WHERE m.mid = :mid AND m.memtype.roleName IN ('ADMIN', 'SUPERADMIN', 'STAFF')")
+    @Query("""
+           SELECT m
+           FROM MemberEntity m
+           JOIN m.memtype t
+           WHERE m.mid = :mid
+             AND t.mtname IN ('ADMIN','SUPERADMIN','STAFF')
+           """)
     Optional<MemberEntity> findAdminByMid(@Param("mid") String mid);
-    
-    // 이름과 전화번호로 회원 찾기
+
     Optional<MemberEntity> findByMnameAndMtel(String mname, String mtel);
-    
-    // 이름과 이메일로 회원 찾기  
     Optional<MemberEntity> findByMnameAndMemail(String mname, String memail);
 }
-

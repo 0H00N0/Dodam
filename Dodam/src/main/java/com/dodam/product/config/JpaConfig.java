@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  * @since 1.0.0
  */
 @Configuration
-@EnableJpaRepositories(basePackages = "com.dodam.product.repository")
+@EnableJpaRepositories(basePackages = "com.dodam")
 @EnableTransactionManagement
 public class JpaConfig {
     

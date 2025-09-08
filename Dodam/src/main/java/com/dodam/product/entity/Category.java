@@ -14,9 +14,8 @@ import java.util.List;
  * 상품들을 분류하기 위한 카테고리 정보를 저장합니다.
  */
 @Entity
-@Table(name = "category", indexes = {
-    @Index(name = "idx_category_name", columnList = "categoryName")
-})
+@Table(name="category",
+indexes = @Index(name="idx_category_name", columnList="category_name") ) 
 @Getter
 @Setter
 @NoArgsConstructor

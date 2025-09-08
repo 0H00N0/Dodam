@@ -14,12 +14,13 @@ import java.time.LocalDateTime;
  * 기프티콘 발행, 사용, 거래 내역을 저장합니다.
  */
 @Entity
-@Table(name = "gifticon", indexes = {
-    @Index(name = "idx_gifticon_member", columnList = "memberId"),
-    @Index(name = "idx_gifticon_status", columnList = "status"),
-    @Index(name = "idx_gifticon_type", columnList = "transactionType"),
-    @Index(name = "idx_gifticon_expiry", columnList = "expiryDate"),
-    @Index(name = "idx_gifticon_created", columnList = "created_at")
+@Table(name="gifticon",
+indexes = {
+  @Index(name="idx_gifticon_member", columnList="member_id"),      // ✅
+  @Index(name="idx_gifticon_status", columnList="status"),
+  @Index(name="idx_gifticon_type",   columnList="transaction_type"),// ✅
+  @Index(name="idx_gifticon_expiry", columnList="expiry_date"),     // ✅
+  @Index(name="idx_gifticon_created",columnList="created_at")
 })
 @Getter
 @Setter

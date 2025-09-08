@@ -15,11 +15,13 @@ import java.util.List;
  * 판매되는 상품들의 기본 정보를 저장합니다.
  */
 @Entity
-@Table(name = "product", indexes = {
-    @Index(name = "idx_product_name", columnList = "productName"),
-    @Index(name = "idx_product_category", columnList = "category_id"),
-    @Index(name = "idx_product_price", columnList = "price")
-})
+
+@Table(name="product",
+  indexes = {
+    @Index(name="idx_product_name", columnList="product_name"), // ✅
+    @Index(name="idx_product_category", columnList="category_id"),
+    @Index(name="idx_product_price", columnList="price")
+  })
 @Getter
 @Setter
 @NoArgsConstructor

@@ -15,12 +15,14 @@ import java.util.List;
  * 상품에 대한 고객 리뷰 정보를 저장합니다.
  */
 @Entity
-@Table(name = "review", indexes = {
-    @Index(name = "idx_review_member", columnList = "memberId"),
-    @Index(name = "idx_review_product", columnList = "product_id"),
-    @Index(name = "idx_review_rating", columnList = "rating"),
-    @Index(name = "idx_review_created", columnList = "created_at")
-})
+
+@Table(name="review",
+  indexes = {
+    @Index(name="idx_review_member", columnList="member_id"), // ✅
+    @Index(name="idx_review_product", columnList="product_id"),
+    @Index(name="idx_review_rating", columnList="rating"),
+    @Index(name="idx_review_created", columnList="created_at")
+  })
 @Getter
 @Setter
 @NoArgsConstructor

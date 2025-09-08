@@ -11,13 +11,17 @@ import java.time.LocalDateTime;
  * 회원이 리뷰에 대해 좋아요/싫어요를 표시한 정보를 저장합니다.
  */
 @Entity
-@Table(name = "review_like", 
-    indexes = {
-        @Index(name = "idx_review_like_review", columnList = "review_id"),
-        @Index(name = "idx_review_like_member", columnList = "memberId"),
-        @Index(name = "idx_review_like_unique", columnList = "review_id,memberId", unique = true)
-    }
-)
+@Table(
+		  name = "review_like",
+		  uniqueConstraints = @UniqueConstraint(
+		    name = "idx_review_like_unique",
+		    columnNames = {"review_id","member_id"} // ✅
+		  ),
+		  indexes = {
+		    @Index(name="idx_review_like_review", columnList="review_id"),
+		    @Index(name="idx_review_like_member", columnList="member_id") // ✅
+		  }
+		)
 @Getter
 @Setter
 @NoArgsConstructor

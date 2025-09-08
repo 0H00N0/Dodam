@@ -14,12 +14,13 @@ import java.time.LocalDateTime;
  * 이벤트 참여에 따른 보상 지급 내역을 저장합니다.
  */
 @Entity
-@Table(name = "event_reward", indexes = {
-    @Index(name = "idx_event_reward_member", columnList = "memberId"),
-    @Index(name = "idx_event_reward_event", columnList = "eventCode"),
-    @Index(name = "idx_event_reward_status", columnList = "status"),
-    @Index(name = "idx_event_reward_type", columnList = "rewardType"),
-    @Index(name = "idx_event_reward_created", columnList = "created_at")
+@Table(name="event_reward",
+indexes = {
+  @Index(name="idx_event_reward_member", columnList="member_id"), // ✅
+  @Index(name="idx_event_reward_event",  columnList="event_code"), // ✅
+  @Index(name="idx_event_reward_status", columnList="status"),
+  @Index(name="idx_event_reward_type",   columnList="reward_type"), // ✅
+  @Index(name="idx_event_reward_created",columnList="created_at")
 })
 @Getter
 @Setter

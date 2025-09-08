@@ -8,4 +8,5 @@ import com.dodam.member.entity.MemtypeEntity;
 @Repository
 public interface MemtypeRepository extends JpaRepository<MemtypeEntity, Long> {
     Optional<MemtypeEntity> findByMtcode(Integer mtcode);
+    Optional<MemtypeEntity> findByMtname(String mtname);
 }

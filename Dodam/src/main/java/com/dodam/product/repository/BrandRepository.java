@@ -4,6 +4,7 @@ import com.dodam.product.entity.Brand;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +15,7 @@ import java.util.Optional;
  * 
  * @since 1.0.0
  */
+@Repository
 public interface BrandRepository extends JpaRepository<Brand, Long> {
     
     // === 기본 조회 메서드 ===

@@ -58,8 +58,19 @@ public class MemberController {
         return ResponseEntity.ok(Map.of("message", "logout ok"));
     }
     
-    //회원정보 수정
-    @PutMapping("/me")
+ // 회원정보 조회
+    @GetMapping("/api/member/me")
+    public ResponseEntity<?> getProfile(HttpSession session) {
+        String sid = (String) session.getAttribute("sid");
+        if (sid == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+        MemberDTO member = memberService.me(sid);
+        return ResponseEntity.ok(member);
+    }
+    
+    //회원정보 수정 - 프론트엔드 API 경로에 맞춤
+    @PutMapping("/api/member/me")
     public ResponseEntity<?> updateProfile(@RequestBody MemberDTO dto, HttpSession session) {
         String sid = (String) session.getAttribute("sid");
         if (sid == null) {
@@ -69,15 +80,21 @@ public class MemberController {
         return ResponseEntity.ok().build();
     }
 
-    // 비밀번호 수정
-    @PutMapping("/me/password")
-    public ResponseEntity<?> changePw(@RequestBody MemberDTO dto, HttpSession session) {
-        String sid = (String)session.getAttribute("sid");
+ // 비밀번호 변경 - 프론트엔드 API 경로 및 JSON body 방식에 맞춤
+    @PutMapping("/api/member/me/password")
+    public ResponseEntity<String> changePassword(
+            HttpSession session,
+            @RequestBody Map<String, String> passwordData) {
+        String sid = (String) session.getAttribute("sid");
         if (sid == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
         }
-        memberService.changePw(sid, dto.getMpw());
-        return ResponseEntity.ok().build();
+
+        String currentPw = passwordData.get("currentPw");
+        String newPw = passwordData.get("newPw");
+        
+        memberService.changePw(sid, currentPw, newPw);
+        return ResponseEntity.ok("비밀번호가 변경되었습니다.");
     }
 
     // (선택) 아이디 중복 체크: /member/check-id?mid=abc
