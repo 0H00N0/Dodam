@@ -2,6 +2,7 @@ package com.dodam.plan.controller;
 
 import com.dodam.plan.service.PlanPaymentProfileService;
 import com.dodam.plan.repository.PlanPaymentRepository;
+import com.dodam.member.repository.MemberRepository;
 import com.dodam.plan.Entity.PlanPaymentEntity;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,23 @@ public class PlanPaymentMethodController {
 
     private final PlanPaymentProfileService profileSvc;
     private final PlanPaymentRepository paymentRepo;
+    private final MemberRepository memberRepo;
+    
+    private Long resolveMnum(HttpSession session) {
+        Object cached = session.getAttribute("mnum");
+        if (cached instanceof Long m) return m;
 
+        Object sid = session.getAttribute("sid"); // 문자열 아이디
+        if (!(sid instanceof String mid)) return null;
+
+        var member = memberRepo.findByMid(mid).orElse(null);
+        if (member == null) return null;
+
+        Long mnum = member.getMnum();
+        session.setAttribute("mnum", mnum); // ✅ 이후 요청부터는 조회 없음
+        return mnum;
+    }
+    
     /**
      * 빌링키 등록/갱신
      * 프론트에서 PortOne SDK로 카드 인증 완료 후 customerId, billingKey, 카드메타(pg/brand/bin/last4) 전달
@@ -48,31 +65,32 @@ public class PlanPaymentMethodController {
         // 필요 시 활성화 플래그가 있다면: pp.setActive(true);
         paymentRepo.save(pp);
 
-        return ResponseEntity.ok(new BillingKeyRes(pp.getPayId(), pp.getPayCustomer(), masked(pp.getPayLast4())));
+        return ResponseEntity.ok(new BillingKeyRes(pp.getPayId(), pp.getPayCustomer(), maskLast4(pp.getPayLast4())));
     }
 
     /**
      * 내 빌링키 목록 보기
      */
     @GetMapping("/list")
-    public ResponseEntity<List<BillingKeyItem>> list(HttpSession session) {
-        Long mnum = (Long) session.getAttribute("sid");
+    public ResponseEntity<?> list(HttpSession session) {
+        Long mnum = resolveMnum(session);
         if (mnum == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
-        var list = paymentRepo.findByMember_Mnum(mnum).stream()
-                .map(pp -> new BillingKeyItem(
-                        pp.getPayId(),
-                        pp.getPayCustomer(),
-                        pp.getPayPg(),
-                        pp.getPayBrand(),
-                        pp.getPayBin(),
-                        masked(pp.getPayLast4()),
-                        pp.getPayKey() != null && !pp.getPayKey().isBlank()
-                ))
-                .toList();
+        var list = paymentRepo.findByMemberMnum(mnum).stream()
+            .map(pp -> new BillingKeyItem(
+                pp.getPayId(),
+                nullSafe(pp.getPayCustomer()),
+                nullSafe(pp.getPayPg()),
+                nullSafe(pp.getPayBrand()),
+                nullSafe(pp.getPayBin()),
+                maskLast4(pp.getPayLast4()),
+                pp.getPayKey() != null && !pp.getPayKey().isBlank()
+            ))
+            .toList();
 
         return ResponseEntity.ok(list);
     }
+
 
     /**
      * 빌링키 삭제 (주의: PG의 customer/billingKey 삭제 호출이 필요하면 profileSvc에 위임해서 함께 처리)
@@ -123,7 +141,9 @@ public class PlanPaymentMethodController {
     ) {}
 
     private static String nullToEmpty(String s) { return s == null ? "" : s; }
-    private static String masked(String last4) {
+    private static String maskLast4(String last4){
         return (last4 == null || last4.isBlank()) ? "" : "****-****-****-" + last4;
     }
+    
+    private static String nullSafe(String s){ return s == null ? "" : s; }
 }
