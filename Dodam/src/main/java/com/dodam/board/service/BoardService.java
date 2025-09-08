@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service; 
 import java.util.List;
 
-@Builder @Service ("boardService") @RequiredArgsConstructor public class BoardService {
+@Builder @Service @RequiredArgsConstructor public class BoardService {
   private final BoardRepository repo;
   public List<BoardDto> list(){ return repo.findAll()
 		  .stream().map(b->BoardDto.builder()

@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*; 
 import org.springframework.stereotype.Service; 
 import org.springframework.transaction.annotation.Transactional;
-@Service ("boardNoticeService") @RequiredArgsConstructor public class NoticeService {
+@Service @RequiredArgsConstructor public class NoticeService {
   private final NoticeRepository repo; private final BoardService boards;
   @Transactional public NoticeResponse create(NoticeCreateRequest req){ BoardEntity b=boards.getByCodeOrThrow(req.getBoardCode());
     NoticeEntity e=NoticeEntity.builder().code(b).title(req.getTitle()).content(req.getContent()).pinned(req.isPinned()).build();
