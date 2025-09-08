@@ -1,5 +1,7 @@
 package com.dodam.board.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -13,7 +15,7 @@ public class NoticeEntity {
     private Long id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "board_code", referencedColumnName = "code", nullable = false)
-    private BoardEntity board;
+    private BoardEntity code;
     @Column(nullable = false, length = 200)
     private String title;
     @Lob @Column(nullable = false)
@@ -22,6 +24,11 @@ public class NoticeEntity {
     private boolean pinned = false;
     @Column(nullable = false)
     private int views = 0;
+    @Column(nullable = false, length = 50)
+    private String author;
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private NoticeStatus status = NoticeStatus.PUBLISHED;

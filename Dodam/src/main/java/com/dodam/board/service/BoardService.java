@@ -3,10 +3,13 @@ import com.dodam.board.entity.BoardEntity;
 import com.dodam.board.dto.BoardDto; 
 import com.dodam.board.repository.BoardRepository; 
 import com.dodam.board.error.NotFoundException;
+
+import lombok.Builder;
 import lombok.RequiredArgsConstructor; 
 import org.springframework.stereotype.Service; 
 import java.util.List;
-@Service @RequiredArgsConstructor public class BoardService {
+
+@Builder @Service ("boardService") @RequiredArgsConstructor public class BoardService {
   private final BoardRepository repo;
   public List<BoardDto> list(){ return repo.findAll()
 		  .stream().map(b->BoardDto.builder()

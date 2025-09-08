@@ -10,7 +10,7 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service; 
 import org.springframework.transaction.annotation.Transactional; 
 import java.time.LocalDate;
-@Service @RequiredArgsConstructor public class EventService {
+@Service ("boardEventService") @RequiredArgsConstructor public class EventService {
   private final EventRepository repo; private final BoardService boards;
   @Transactional public EventResponse create(EventCreateRequest req){ if(req.getEndDate().isBefore(req.getStartDate())) throw new IllegalArgumentException("endDate는 startDate보다 빠를 수 없습니다.");
     BoardEntity b=boards.getByCodeOrThrow(req.getBoardCode()); EventEntity e=EventEntity.builder().board(b).title(req.getTitle()).content(req.getContent())

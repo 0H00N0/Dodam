@@ -10,7 +10,7 @@ import org.springframework.data.domain.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service; 
 import org.springframework.transaction.annotation.Transactional;
-@Service @RequiredArgsConstructor public class InquiryService {
+@Service ("boardInquiryService") @RequiredArgsConstructor public class InquiryService {
   private final InquiryRepository repo; private final BoardService boards; private final BCryptPasswordEncoder enc=new BCryptPasswordEncoder();
   @Transactional public InquiryResponse create(InquiryCreateRequest req){ BoardEntity b=boards.getByCodeOrThrow(req.getBoardCode());
     InquiryEntity e=InquiryEntity.builder().board(b).title(req.getTitle()).content(req.getContent()).contactEmail(req.getContactEmail()).secret(req.isSecret()).status(InquiryEntity.InquiryStatus.OPEN).build();

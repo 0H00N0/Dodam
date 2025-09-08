@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*; 
 import org.springframework.stereotype.Service; 
 import org.springframework.transaction.annotation.Transactional;
-@Service @RequiredArgsConstructor public class FaqService {
+@Service ("boardFaqService") @RequiredArgsConstructor public class FaqService {
   private final FaqRepository repo; private final BoardService boards;
   @Transactional public FaqResponse create(FaqCreateRequest req){ BoardEntity b=boards.getByCodeOrThrow(req.getBoardCode());
     FaqEntity e=FaqEntity.builder().board(b).category(req.getCategory()).question(req.getQuestion()).answer(req.getAnswer()).sortOrder(req.getSortOrder()==null?0:req.getSortOrder()).enabled(req.getEnabled()==null?true:req.getEnabled()).build();
