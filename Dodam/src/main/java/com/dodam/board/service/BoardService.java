@@ -1,5 +1,5 @@
 package com.dodam.board.service;
-import com.dodam.board.BoardEntity; 
+import com.dodam.board.entity.BoardEntity; 
 import com.dodam.board.dto.BoardDto; 
 import com.dodam.board.repository.BoardRepository; 
 import com.dodam.board.error.NotFoundException;

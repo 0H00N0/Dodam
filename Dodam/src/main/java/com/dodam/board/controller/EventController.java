@@ -1,5 +1,9 @@
 package com.dodam.board.controller;
-import com.dodam.board.*; 
+import com.dodam.board.*;
+import com.dodam.board.dto.event.EventCreateRequest;
+import com.dodam.board.dto.event.EventResponse;
+import com.dodam.board.dto.event.EventUpdateRequest;
+import com.dodam.board.service.EventService;
 import jakarta.validation.Valid; 
 import lombok.RequiredArgsConstructor; 
 import org.springframework.data.domain.*; 

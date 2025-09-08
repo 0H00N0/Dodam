@@ -1,6 +1,8 @@
 package com.dodam.board.service;
 import com.dodam.board.*; 
-import com.dodam.board.dto.notice.*; 
+import com.dodam.board.dto.notice.*;
+import com.dodam.board.entity.BoardEntity;
+import com.dodam.board.entity.NoticeEntity;
 import com.dodam.board.error.NotFoundException; 
 import com.dodam.board.repository.NoticeRepository;
 import lombok.RequiredArgsConstructor; 
