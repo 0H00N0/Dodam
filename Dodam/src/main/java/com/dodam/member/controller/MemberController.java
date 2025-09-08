@@ -1,5 +1,6 @@
 package com.dodam.member.controller;
 
+import com.dodam.member.dto.ChangePwDTO;
 import com.dodam.member.dto.MemberDTO;
 import com.dodam.member.service.MemberService;
 import jakarta.servlet.http.HttpSession;
@@ -82,17 +83,13 @@ public class MemberController {
 
  // 비밀번호 변경
     @PutMapping("/changePw")
-    public ResponseEntity<String> changePassword(
-            HttpSession session,
-            @RequestParam String currentPassword,
-            @RequestParam String newPassword) {
+    public ResponseEntity<?> changePw(@RequestBody ChangePwDTO dto, HttpSession session) {
         String sid = (String) session.getAttribute("sid");
         if (sid == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
         }
-
-        memberService.changePw(sid, currentPassword, newPassword);
-        return ResponseEntity.ok("비밀번호가 변경되었습니다.");
+        memberService.changePw(sid, dto);
+        return ResponseEntity.ok().build();
     }
 
     // (선택) 아이디 중복 체크: /member/check-id?mid=abc

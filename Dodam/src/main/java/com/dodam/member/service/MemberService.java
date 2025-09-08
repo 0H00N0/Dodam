@@ -1,5 +1,6 @@
 package com.dodam.member.service;
 
+import com.dodam.member.dto.ChangePwDTO;
 import com.dodam.member.dto.MemberDTO;
 import com.dodam.member.entity.LoginmethodEntity;
 import com.dodam.member.entity.MemberEntity;
@@ -86,17 +87,17 @@ public class MemberService {
         memberRepository.save(entity);
     }
 
-    public void changePw(String sid, String currentPassword, String newPassword) {
+    public void changePw(String sid, ChangePwDTO dto) {
         MemberEntity entity = memberRepository.findByMid(sid)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 없음"));
 
         // 현재 비밀번호 검증
-        if (!passwordEncoder.matches(currentPassword, entity.getMpw())) {
+        if (!entity.getMpw().equals(dto.getCurrentPw())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "현재 비밀번호가 일치하지 않습니다.");
         }
 
-        // 새 비밀번호 해시 저장
-        entity.setMpw(passwordEncoder.encode(newPassword));
+        // 새 비밀번호 저장
+        entity.setMpw(passwordEncoder.encode(dto.getNewPw()));
         memberRepository.save(entity);
     }
 
