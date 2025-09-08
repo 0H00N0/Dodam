@@ -1,5 +1,6 @@
 package com.dodam.member.controller;
 
+import com.dodam.member.dto.ChangePwDTO;
 import com.dodam.member.dto.MemberDTO;
 import com.dodam.member.service.MemberService;
 import jakarta.servlet.http.HttpSession;
@@ -58,8 +59,19 @@ public class MemberController {
         return ResponseEntity.ok(Map.of("message", "logout ok"));
     }
     
+ // 회원정보 조회
+    @GetMapping("/api/member/me")
+    public ResponseEntity<?> getProfile(HttpSession session) {
+        String sid = (String) session.getAttribute("sid");
+        if (sid == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+        MemberDTO member = memberService.me(sid);
+        return ResponseEntity.ok(member);
+    }
+    
     //회원정보 수정
-    @PutMapping("/me")
+    @PutMapping("/updateProfile")
     public ResponseEntity<?> updateProfile(@RequestBody MemberDTO dto, HttpSession session) {
         String sid = (String) session.getAttribute("sid");
         if (sid == null) {
@@ -69,14 +81,14 @@ public class MemberController {
         return ResponseEntity.ok().build();
     }
 
-    // 비밀번호 수정
-    @PutMapping("/me/password")
-    public ResponseEntity<?> changePw(@RequestBody MemberDTO dto, HttpSession session) {
-        String sid = (String)session.getAttribute("sid");
+ // 비밀번호 변경
+    @PutMapping("/changePw")
+    public ResponseEntity<?> changePw(@RequestBody ChangePwDTO dto, HttpSession session) {
+        String sid = (String) session.getAttribute("sid");
         if (sid == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
         }
-        memberService.changePw(sid, dto.getMpw());
+        memberService.changePw(sid, dto);
         return ResponseEntity.ok().build();
     }
 
