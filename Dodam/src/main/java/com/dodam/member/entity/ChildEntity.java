@@ -27,7 +27,7 @@ public class ChildEntity {
 	    private Long chnum; // 자녀번호 (PK)
 
 	    @ManyToOne(fetch = FetchType.LAZY) // 여러 자녀가 한 명의 회원에 속할 수 있음
-	    @JoinColumn(name = "mnum", nullable = false)
+	    @JoinColumn(name = "mnum", referencedColumnName = "mnum", nullable = false)
 	    private MemberEntity member; // 회원번호 (FK)
 
 	    @Column(name = "chname", nullable = false, length = 50)
