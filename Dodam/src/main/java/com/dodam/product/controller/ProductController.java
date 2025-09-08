@@ -2,6 +2,7 @@ package com.dodam.product.controller;
 
 import com.dodam.admin.entity.AdminEntity;
 import com.dodam.admin.repository.AdminRepository;
+import com.dodam.product.entity.CategoryEntity;
 import com.dodam.product.entity.ProductEntity;
 import com.dodam.product.service.ProductBulkService;
 import com.dodam.product.service.ProductBulkService.BulkImportResult;
@@ -21,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -138,5 +140,37 @@ public class ProductController {
         BulkImportResult result = productBulkService.importXlsx(file, adminId);
         model.addAttribute("result", result);
         return "admin/product/bulk"; // 결과를 같은 페이지에서 보여줌
+    }
+ // ProductController.java에 추가
+    @GetMapping("/api/admin/products")
+    public ResponseEntity<List<ProductEntity>> getAllProducts() {
+        return ResponseEntity.ok(productService.findAll());
+    }
+
+    @GetMapping("/api/admin/products/{id}")
+    public ResponseEntity<ProductEntity> getProductById(@PathVariable("id") Long id) {
+        return productService.findById(id)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/api/admin/products/{id}")
+    public ResponseEntity<Map<String, Object>> deleteProduct(@PathVariable("id") Long id) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            productService.deleteById(id);
+            response.put("success", true);
+            response.put("message", "상품이 성공적으로 삭제되었습니다.");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "삭제 실패: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    @GetMapping("/api/admin/categories")
+    public ResponseEntity<List<CategoryEntity>> getAllCategories() {
+        return ResponseEntity.ok(productService.getAllCategories());
     }
 }
