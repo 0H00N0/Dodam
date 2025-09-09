@@ -14,8 +14,10 @@ public class NoticeEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "board_code", nullable = false)
+    @JoinColumn(name = "boardcode", nullable = false)
     private BoardEntity code;
+    @Column(name = "board_code", nullable = false)
+    private Long boardCode;
     @Column(nullable = false, length = 200)
     private String title;
     @Lob @Column(nullable = false)

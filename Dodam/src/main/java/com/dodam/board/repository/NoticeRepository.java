@@ -6,5 +6,5 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface NoticeRepository extends JpaRepository<NoticeEntity, Long> {
-    Page<NoticeEntity> findByBoard_Code(String boardCode, Pageable pageable);
+    Page<NoticeEntity> findByBoardCode(Long boardCode, Pageable pageable);
 }
