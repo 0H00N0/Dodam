@@ -1,7 +1,8 @@
 package com.dodam.admin.board;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils; 
+import org.springframework.beans.BeanUtils;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.*;   
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +12,7 @@ import java.util.stream.Collectors;
 
 
 @Service
+@Profile("admin")
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class NoticeService {

@@ -33,7 +33,7 @@ public class EventEntity {
     @Column(name="updated_at")
     private java.time.LocalDateTime updatedAt;
     @PreUpdate void onUpdate() { this.updatedAt = java.time.LocalDateTime.now(); }
-    @PrePersist @PreUpdate
+    @PrePersist 
     void validateDates() {
         if (endDate != null && startDate != null && endDate.isBefore(startDate)) {
             throw new IllegalArgumentException("endDate는 startDate보다 빠를 수 없습니다.");

@@ -5,7 +5,9 @@ import com.dodam.board.entity.BoardEntity;
 import com.dodam.board.entity.NoticeEntity;
 import com.dodam.board.error.NotFoundException; 
 import com.dodam.board.repository.NoticeRepository;
-import lombok.RequiredArgsConstructor; 
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.*; 
 import org.springframework.stereotype.Service; 
 import org.springframework.transaction.annotation.Transactional;
