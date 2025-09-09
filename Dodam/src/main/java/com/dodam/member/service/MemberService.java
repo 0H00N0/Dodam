@@ -1,95 +1,147 @@
 package com.dodam.member.service;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import com.dodam.member.dto.ChangePwDTO;
 import com.dodam.member.dto.MemberDTO;
-import com.dodam.member.entity.*;
-import com.dodam.member.repository.*;
+import com.dodam.member.entity.LoginmethodEntity;
+import com.dodam.member.entity.MemberEntity;
+import com.dodam.member.entity.MemtypeEntity;
+import com.dodam.member.repository.LoginmethodRepository;
+import com.dodam.member.repository.MemberRepository;
+import com.dodam.member.repository.MemtypeRepository;
 import lombok.RequiredArgsConstructor;
-
-import java.util.List;
-import java.util.stream.Collectors;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder; // ✅ 추가
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
 public class MemberService {
 
-    private final MemberRepository memberRepo;
-    private final MemtypeRepository memtypeRepo;
-    private final LoginmethodRepository loginRepo;
+    private final MemberRepository memberRepository;
+    private final LoginmethodRepository loginmethodRepository;
+    private final MemtypeRepository memtypeRepository;
+    private final PasswordEncoder passwordEncoder; // ✅ 추가
 
-    /** 회원가입: 기본 memtype=0(일반), loginmethod=local */
-    @Transactional
-    public void signup(MemberDTO dto){
-        if (memberRepo.existsByMid(dto.getMid()))
-            throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
-        if (dto.getMemail() != null && memberRepo.existsByMemail(dto.getMemail()))
-            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
-
-        MemtypeEntity role = memtypeRepo.findByRoleName("USER")
-            .orElseThrow(() -> new IllegalStateException("'USER' 역할이 DB에 없습니다."));
-        LoginmethodEntity local = loginRepo.findByLmtype("local")
-            .orElseThrow(() -> new IllegalStateException("loginmethod(local) 시드가 없습니다."));
-
-        MemberEntity e = MemberDTO.toEntity(dto);
-        e.setMpw(dto.getMpw()); // Security 미적용 → 평문 저장
-        e.setMemtype(role);
-        e.setLoginmethod(local);
-
-        memberRepo.save(e);
+    private LoginmethodEntity getOrCreateLocal() {
+        return loginmethodRepository.findByLmtype("LOCAL")
+                .orElseGet(() -> loginmethodRepository.save(
+                        LoginmethodEntity.builder().lmtype("LOCAL").build()
+                ));
     }
 
-    /** 로그인 검증 (Security 제외, 단순 equals 비교) */
-    public boolean loginCheck(String mid, String rawPw){
-        return memberRepo.findByMid(mid)
-                .map(e -> rawPw.equals(e.getMpw()))
-                .orElse(false);
+    private MemtypeEntity getOrCreateDefault() {
+        // 0 = 일반
+        return memtypeRepository.findByMtcode(0)
+                .orElseGet(() -> memtypeRepository.save(
+                        MemtypeEntity.builder().mtcode(0).mtname("일반").build()
+                ));
     }
 
-    public MemberDTO readByMid(String mid){
-        return memberRepo.findByMid(mid).map(MemberDTO::new).orElse(null);
-    }
-
-    /** 관리자용: 모든 회원 조회 */
-    public List<MemberDTO> findAll(){
-        return memberRepo.findAll()
-                .stream()
-                .map(MemberDTO::new)
-                .collect(Collectors.toList());
-    }
-
-    /** 관리자용: ID로 회원 조회 */
-    public MemberDTO findById(Long id){
-        return memberRepo.findById(id).map(MemberDTO::new).orElse(null);
-    }
-
-    /** 관리자용: 회원 삭제 */
-    public void deleteById(Long id){
-        memberRepo.deleteById(id);
-    }
-    public MemberEntity authenticate(String username, String password) {
-        System.out.println("인증 시작: " + username + " / " + password);
-        
-        // 붉은색으로 변경된 부분은 변수 이름과 필드 접근 방식을 수정한 부분입니다.
-        MemberEntity member = memberRepo.findByMid(username)
-                .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
-        
-        System.out.println("사용자 찾음: " + member.getMid() + ", MTYPE: " + member.getMemtype().getRoleName());
-        
-        // 관리자 권한 확인
-        String role = member.getMemtype().getRoleName();
-        if (!("SUPERADMIN".equals(role) || "ADMIN".equals(role) || "STAFF".equals(role))) {
-            throw new RuntimeException("관리자 권한이 없습니다.");
+    public void signup(MemberDTO dto) {
+        if (memberRepository.existsByMid(dto.getMid())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "duplicated mid");
         }
-        
-        // 비밀번호 검증
-        if (!password.equals(member.getMpw())) {
-            throw new RuntimeException("비밀번호가 일치하지 않습니다.");
-        }
-        
-        System.out.println("인증 성공: " + member.getMid() + ", 권한: " + member.getMemtype().getRoleName());
-        return member;
+
+        // ✅ 비밀번호 해시 저장
+        String encoded = passwordEncoder.encode(dto.getMpw());
+
+        MemberEntity e = MemberEntity.builder()
+                .mid(dto.getMid())
+                .mpw(encoded)                  // ✅ 해시 저장
+                .mname(dto.getMname())
+                .mtel(dto.getMtel())
+                .loginmethod(getOrCreateLocal())
+                .memtype(getOrCreateDefault())
+                .build();
+
+        memberRepository.save(e);
     }
+
+    public MemberDTO login(String mid, String rawPw) {
+        var e = memberRepository.findByMid(mid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid id/pw"));
+
+        // ✅ 해시 검증
+        if (!passwordEncoder.matches(rawPw, e.getMpw())) {
+            // (선택) 평문→해시 마이그레이션이 필요하면 아래 주석 블록 참고
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid id/pw");
+        }
+
+        return new MemberDTO(e);
+    }
+
+    public boolean exists(String mid) {
+        return memberRepository.existsByMid(mid);
+    }
+
+    private static boolean isBlank(String s) { return s == null || s.isBlank(); }
+
+    public void updateProfile(String sid, MemberDTO dto) {
+        MemberEntity entity = memberRepository.findByMid(sid)
+            .orElseThrow(() -> new RuntimeException("회원 없음"));
+        entity.setMemail(dto.getMemail());
+        entity.setMtel(dto.getMtel());
+        entity.setMaddr(dto.getMaddr());
+        entity.setMnic(dto.getMnic());
+        memberRepository.save(entity);
+    }
+
+    public void changePw(String sid, ChangePwDTO dto) {
+        MemberEntity entity = memberRepository.findByMid(sid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 없음"));
+
+        // 현재 비밀번호 검증
+        if (!passwordEncoder.matches(dto.getCurrentPw(), entity.getMpw())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "현재 비밀번호가 일치하지 않습니다.");
+        }
+        entity.setMpw(passwordEncoder.encode(dto.getNewPw()));
+
+        // 새 비밀번호 저장
+        entity.setMpw(passwordEncoder.encode(dto.getNewPw()));
+        memberRepository.save(entity);
+    }
+
+    public MemberDTO me(String mid) {
+        var e = memberRepository.findByMid(mid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 없음"));
+        return new MemberDTO(e);
+    }
+
+    public String findIdByNameAndTel(String mname, String mtel) {
+        return memberRepository.findByMnameAndMtel(mname, mtel)
+            .map(MemberEntity::getMid)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
+    }
+
+    public String findIdByNameAndEmail(String mname, String memail) {
+        return memberRepository.findByMnameAndMemail(mname, memail)
+            .map(MemberEntity::getMid)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
+    }
+
+    /*
+    // (선택) 기존 평문 비번 마이그레이션 예시:
+    public MemberDTO loginWithSoftMigration(String mid, String rawPw) {
+        var e = memberRepository.findByMid(mid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid id/pw"));
+
+        String stored = e.getMpw();
+        boolean looksHashed = stored != null && stored.startsWith("$2"); // BCrypt
+        boolean ok;
+
+        if (looksHashed) {
+            ok = passwordEncoder.matches(rawPw, stored);
+        } else {
+            ok = rawPw.equals(stored); // 기존 평문 비교
+            if (ok) {
+                // 첫 성공 시 해시로 교체
+                e.setMpw(passwordEncoder.encode(rawPw));
+                memberRepository.save(e);
+            }
+        }
+        if (!ok) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid id/pw");
+        return new MemberDTO(e);
+    }
+    */
 }
-

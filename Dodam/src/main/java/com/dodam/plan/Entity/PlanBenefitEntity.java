@@ -1,45 +1,22 @@
 package com.dodam.plan.Entity;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import jakarta.persistence.ForeignKey;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
-@Table(name = "PlanBenefit")
+@Table(name="PlanBenefit")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PlanBenefitEntity {
-	@Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long pbId;   // PK
+  @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long pbId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "planId", nullable = false,
-            foreignKey = @ForeignKey(name = "fk_planBenefit_plan"))
-    @OnDelete(action = OnDeleteAction.CASCADE) // Plan 삭제 시 혜택도 삭제
-    private PlansEntity plan;   // FK → Plan.planId
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name="planId", nullable=false, foreignKey=@ForeignKey(name="fk_benefit_plan"))
+  private PlansEntity plan;
 
-    @Column(precision = 11, scale = 2)
-    private BigDecimal pbPriceCap; // 월 대여료 상한
-
-    @Lob
-    @Column(nullable = false)
-    private String pbNote; // 혜택 설명  
+  @Column(nullable=true,precision=11, scale=2) private BigDecimal pbPriceCap;
+  @Lob private String pbNote;
 }
