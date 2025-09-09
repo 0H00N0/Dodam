@@ -85,6 +85,7 @@ public class MemberService {
         entity.setMaddr(dto.getMaddr());
         entity.setMnic(dto.getMnic());
         memberRepository.save(entity);
+        
     }
 
     public void changePw(String sid, ChangePwDTO dto) {
