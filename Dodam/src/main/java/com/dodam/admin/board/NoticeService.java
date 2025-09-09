@@ -14,9 +14,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class NoticeService {
-
+ 
     private final NoticeRepository noticeRepository;
-
+    
     public List<NoticeEntity> findAll() {
         return noticeRepository.findAllByOrderByCreatedAtDesc();
     }
