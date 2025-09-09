@@ -2,22 +2,25 @@ package com.dodam;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 
-/**
- * Dodam 애플리케이션의 메인 진입점 클래스입니다.
- * Spring Boot 애플리케이션을 부트스트랩하고 실행하는 역할을 합니다.
- */
 @SpringBootApplication
+@ComponentScan(
+    basePackages = {
+        "com.dodam"                 // 전체 스캔하되
+    },
+    excludeFilters = {
+        // ✅ admin 패키지 전부 제외 (컨트롤러/서비스 등)
+        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.dodam\\.admin\\..*")
+    }
+)
+@EnableJpaRepositories(basePackages = "com.dodam.board.repository")   // ✅ board 레포만
+@EntityScan(basePackages = "com.dodam.board.entity")                   // ✅ board 엔티티만
 public class DodamApplication {
-
-	/**
-	 * 애플리케이션의 메인 메소드입니다.
-	 * SpringApplication.run()을 호출하여 Spring 애플리케이션 컨텍스트를 초기화하고 실행합니다.
-	 * @param args 커맨드 라인 인자
-	 */
-	public static void main(String[] args) {
-		SpringApplication.run(DodamApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(DodamApplication.class, args);
+    }
 }
-

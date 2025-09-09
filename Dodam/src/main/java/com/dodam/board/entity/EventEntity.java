@@ -12,7 +12,7 @@ public class EventEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "board_code", referencedColumnName = "code", nullable = false)
+    @JoinColumn(name = "board_code", nullable = false)
     private BoardEntity board;
     @Column(nullable = false, length = 200)
     private String title;

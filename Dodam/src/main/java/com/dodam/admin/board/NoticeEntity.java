@@ -8,8 +8,10 @@ import lombok.Builder;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "notices") // 공지사항 엔티티
+//@Entity
+//@Table(name = "notices") // 공지사항 엔티티
+@Entity(name = "AdminNotice")
+@Table(name = "admin_notice")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

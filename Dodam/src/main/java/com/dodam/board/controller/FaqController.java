@@ -9,7 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor; 
 import org.springframework.data.domain.*; 
 import org.springframework.web.bind.annotation.*;
-@RestController @RequestMapping("/api/faqs") @RequiredArgsConstructor public class FaqController {
+@RestController @RequestMapping("/faqs") @RequiredArgsConstructor public class FaqController {
   private final FaqService svc;
   @PostMapping public FaqResponse create(@Valid @RequestBody FaqCreateRequest req){ return svc.create(req); }
   @GetMapping public Page<FaqResponse> list(@RequestParam String boardCode, @RequestParam(required=false) String category, Pageable p){ return svc.list(boardCode, category, p); }

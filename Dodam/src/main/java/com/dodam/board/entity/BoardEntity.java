@@ -41,15 +41,20 @@ public class BoardEntity {
     @UpdateTimestamp // 엔티티 수정 시 자동으로 현재 시간이 기록됩니다.
     @Column(name = "bedate")
     private LocalDateTime bedate; // 수정일
-
+    
     @Column(name = "mid", nullable = false)
     private String mid; // 회원ID
 
     @Column(name = "mnic", nullable = false)
     private String mnic; // 회원닉네임
-
+	
+    @Column(name = "board_code")
+    private String code;
     // --- 관계 매핑 ---
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "board_id", nullable = false)  // ← referencedColumnName 제거!
+    private BoardEntity board;
+    
     // Board(N) : BoardCategory(1) -> 다대일 관계
     @ManyToOne(fetch = FetchType.LAZY) // 지연 로딩으로 성능 최적화
     @JoinColumn(name = "bcnum") // 외래 키(FK) 컬럼 지정
@@ -59,4 +64,5 @@ public class BoardEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bsnum") // 외래 키(FK) 컬럼 지정
     private BoardStateEntity boardState;
+    
 }

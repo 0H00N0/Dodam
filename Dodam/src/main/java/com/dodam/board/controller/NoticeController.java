@@ -9,7 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor; 
 import org.springframework.data.domain.*; 
 import org.springframework.web.bind.annotation.*;
-@RestController @RequestMapping("/api/notices") @RequiredArgsConstructor public class NoticeController {
+@RestController @RequestMapping("/notices") @RequiredArgsConstructor public class NoticeController {
   private final NoticeService svc;
   @PostMapping public NoticeResponse create(@Valid @RequestBody NoticeCreateRequest req){ return svc.create(req); }
   @GetMapping public Page<NoticeResponse> list(@RequestParam String boardCode, Pageable p){ return svc.list(boardCode, p); }

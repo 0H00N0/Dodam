@@ -10,7 +10,7 @@ import org.springframework.data.domain.*;
 import org.springframework.web.bind.annotation.*; 
 import java.time.LocalDate;
 @RestController 
-@RequestMapping("/api/events") 
+@RequestMapping("/events") 
 @RequiredArgsConstructor public class EventController {
   private final EventService svc;
   @PostMapping 
