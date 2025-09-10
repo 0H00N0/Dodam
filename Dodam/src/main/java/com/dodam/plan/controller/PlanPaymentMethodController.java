@@ -1,5 +1,6 @@
 package com.dodam.plan.controller;
 
+import com.dodam.plan.service.PlanPaymentGatewayService;
 import com.dodam.plan.service.PlanPaymentProfileService;
 import com.dodam.plan.repository.PlanPaymentRepository;
 import com.dodam.member.repository.MemberRepository;
@@ -24,6 +25,7 @@ public class PlanPaymentMethodController {
     private final PlanPaymentProfileService profileSvc;
     private final PlanPaymentRepository paymentRepo;
     private final MemberRepository memberRepo;
+    private final PlanPaymentGatewayService gateway;
     
     private Long resolveMnum(HttpSession session) {
         Object cached = session.getAttribute("mnum");

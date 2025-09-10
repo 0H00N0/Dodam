@@ -1,56 +1,63 @@
+// src/main/java/com/dodam/plan/controller/PlanPaymentController.java
 package com.dodam.plan.controller;
 
+import com.dodam.plan.repository.PlanInvoiceRepository;
 import com.dodam.plan.service.PlanPaymentGatewayService;
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Mono;
+
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/payments")
 @RequiredArgsConstructor
-@CrossOrigin( // 필요시 CORS 허용
-        origins = "http://localhost:3000",
-        allowCredentials = "true"
-)
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class PlanPaymentController {
 
     private final PlanPaymentGatewayService gateway;
+    private final PlanInvoiceRepository invoiceRepo;
 
-    public record ConfirmRequest(
-            String invoiceId,  // 우리 인보이스 ID (없어도 됨)
-            String paymentId   // PortOne 결제 ID (없어도 됨)
-    ) {}
+    // 프론트에서 {invoiceId} 또는 {paymentId, amount} 아무거나 보내게 허용
+    public record ConfirmReq(Long invoiceId, String paymentId, Long amount) {}
 
     @PostMapping("/confirm")
-    public ResponseEntity<?> confirm(@RequestBody ConfirmRequest req) {
-        // invoiceId 또는 paymentId 중 하나만 있어도 확인 가능하게
-        String id = (req.invoiceId() != null && !req.invoiceId().isBlank())
-                ? req.invoiceId()
-                : req.paymentId();
+    public ResponseEntity<?> confirm(@RequestBody Map<String, Object> body) {
+        String paymentId = body.get("paymentId") != null ? body.get("paymentId").toString() : null;
+        Long amount = body.get("amount") != null ? Long.valueOf(body.get("amount").toString()) : null;
+        Long invoiceId = body.get("invoiceId") != null ? Long.valueOf(body.get("invoiceId").toString()) : null;
 
-        if (id == null || id.isBlank()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "invoiceId 또는 paymentId가 누락되었습니다."));
+        try {
+            if (paymentId != null && amount != null) {
+                var res = gateway.confirmPayment(paymentId, amount).block();
+                return ResponseEntity.ok(Map.of("success", true, "status", res.getStatus()));
+            } else if (invoiceId != null) {
+                var inv = invoiceRepo.findById(invoiceId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "유효하지 않은 invoiceId"));
+                if (inv.getPiUid() == null || inv.getPiAmount() == null) {
+                    return ResponseEntity.badRequest().body(Map.of("success", false, "message", "청구서에 paymentId/amount가 없습니다."));
+                }
+                var res = gateway.confirmPayment(inv.getPiUid(), inv.getPiAmount().longValue()).block();
+                return ResponseEntity.ok(Map.of("success", true, "status", res.getStatus()));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "paymentId+amount 또는 invoiceId 필요"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("success", false, "message", e.getMessage()));
         }
-
-        var res = gateway.getPayment(id); // PortOne 결제 조회 (아래 2번에 구현)
-        if (res == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "결제 정보를 찾을 수 없습니다."));
-        }
-
-        return ResponseEntity.ok(Map.of(
-                "status",        res.status(),
-                "paymentId",     res.paymentId(),
-                "billingKey",    res.billingKey(),
-                "customerId",    res.customerId(),
-                "issuerName",    res.issuerName(),
-                "bin",           res.bin(),
-                "last4",         res.last4()
-        ));
+    }
+    
+    @PostMapping("/billing-keys")
+    public Mono<Map<String, Object>> registerBillingKey(@RequestBody Map<String, Object> req) {
+        return gateway.registerBillingKey(req)
+            .map(res -> Map.of(
+                "success", true,
+                "billingKey", res.getBillingKey(),
+                "customerId", res.getCustomer() != null ? res.getCustomer().getId() : null
+            ));
     }
 }
