@@ -9,6 +9,9 @@ import com.dodam.member.repository.LoginmethodRepository;
 import com.dodam.member.repository.MemberRepository;
 import com.dodam.member.repository.MemtypeRepository;
 import lombok.RequiredArgsConstructor;
+
+import java.util.UUID;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder; // ✅ 추가
 import org.springframework.stereotype.Service;
@@ -121,6 +124,33 @@ public class MemberService {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
     }
 
+    // 임시 비밀번호 생성 로직
+    public String generateTempPassword() {
+        return UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    // 비밀번호 암호화 후 DB에 저장
+    public void updatePassword(String mid, String tempPw) {
+        MemberEntity member = memberRepository.findByMid(mid).orElseThrow();
+        member.setMpw(passwordEncoder.encode(tempPw));
+        memberRepository.save(member);
+    }
+
+    // 이메일 발송 
+    public void sendEmail(String to, String subject, String content) {
+    }
+    
+    // 문자 발송 
+    public void sendSms(String to, String content) {
+    }
+    public boolean existsByMidNameEmail(String mid, String mname, String memail) {
+        return memberRepository.findByMidAndMnameAndMemail(mid, mname, memail).isPresent();
+    }
+
+    public boolean existsByMidNameTel(String mid, String mname, String mtel) {
+        return memberRepository.findByMidAndMnameAndMtel(mid, mname, mtel).isPresent();
+    }
+    
     /*
     // (선택) 기존 평문 비번 마이그레이션 예시:
     public MemberDTO loginWithSoftMigration(String mid, String rawPw) {

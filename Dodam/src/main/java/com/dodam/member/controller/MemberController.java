@@ -129,4 +129,42 @@ public class MemberController {
         String mid = memberService.findIdByNameAndEmail(mname, memail);
         return ResponseEntity.ok(Map.of("mid", mid));
     }
+    
+ // 이메일로 임시 비밀번호 발급 및 발송
+    @PostMapping("/findPwByMemail")
+    public ResponseEntity<?> sendTempPwByEmail(
+        @RequestParam("mid") String mid,
+        @RequestParam("mname") String mname,
+        @RequestParam("memail") String memail
+    ) {
+        boolean exists = memberService.existsByMidNameEmail(mid, mname, memail);
+        if (exists) {
+            String tempPw = memberService.generateTempPassword();
+            memberService.updatePassword(mid, tempPw); // 비밀번호 변경
+            memberService.sendEmail(memail, "임시 비밀번호 안내", "임시 비밀번호: " + tempPw); // 이메일 발송
+            return ResponseEntity.ok(Map.of("message", "임시 비밀번호가 이메일로 발송되었습니다."));
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "일치하는 회원이 없습니다."));
+        }
+    }
+
+    // 전화번호로 임시 비밀번호 발급 및 문자 발송
+    @PostMapping("/findPwByMtel")
+    public ResponseEntity<?> sendTempPwByTel(
+        @RequestParam("mid") String mid,
+        @RequestParam("mname") String mname,
+        @RequestParam("mtel") String mtel
+    ) {
+        boolean exists = memberService.existsByMidNameTel(mid, mname, mtel);
+        if (exists) {
+            String tempPw = memberService.generateTempPassword();
+            memberService.updatePassword(mid, tempPw); // 비밀번호 변경
+            memberService.sendSms(mtel, "임시 비밀번호: " + tempPw); // 문자 발송
+            return ResponseEntity.ok(Map.of("message", "임시 비밀번호가 문자로 발송되었습니다."));
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "일치하는 회원이 없습니다."));
+        }
+    }
 }
