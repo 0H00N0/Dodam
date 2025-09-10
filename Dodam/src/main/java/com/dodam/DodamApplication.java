@@ -2,13 +2,11 @@ package com.dodam;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
-/**
- * Dodam 애플리케이션의 메인 진입점 클래스입니다.
- * Spring Boot 애플리케이션을 부트스트랩하고 실행하는 역할을 합니다.
- */
-@SpringBootApplication(exclude = { SecurityAutoConfiguration.class })
+
+@SpringBootApplication
+@ConfigurationPropertiesScan
 public class DodamApplication {
 
 	/**

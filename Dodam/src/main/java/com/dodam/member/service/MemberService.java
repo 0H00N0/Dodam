@@ -1,6 +1,6 @@
 package com.dodam.member.service;
 
-
+import com.dodam.member.dto.ChangePwDTO;
 import com.dodam.member.dto.MemberDTO;
 import com.dodam.member.entity.LoginmethodEntity;
 import com.dodam.member.entity.MemberEntity;
@@ -10,7 +10,7 @@ import com.dodam.member.repository.MemberRepository;
 import com.dodam.member.repository.MemtypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.password.PasswordEncoder; // ✅ 추가
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -24,7 +24,7 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final LoginmethodRepository loginmethodRepository;
     private final MemtypeRepository memtypeRepository;
-    private final PasswordEncoder passwordEncoder; // ✅ 추가
+    private final PasswordEncoder passwordEncoder;
 
     private LoginmethodEntity getOrCreateLocal() {
         return loginmethodRepository.findByLmtype("LOCAL")
@@ -46,12 +46,11 @@ public class MemberService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "duplicated mid");
         }
 
-        // ✅ 비밀번호 해시 저장
         String encoded = passwordEncoder.encode(dto.getMpw());
 
         MemberEntity e = MemberEntity.builder()
                 .mid(dto.getMid())
-                .mpw(encoded)                  // ✅ 해시 저장
+                .mpw(encoded)
                 .mname(dto.getMname())
                 .mtel(dto.getMtel())
                 .loginmethod(getOrCreateLocal())
@@ -92,9 +91,7 @@ public class MemberService {
         var e = memberRepository.findByMid(mid)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid id/pw"));
 
-        // ✅ 해시 검증
         if (!passwordEncoder.matches(rawPw, e.getMpw())) {
-            // (선택) 평문→해시 마이그레이션이 필요하면 아래 주석 블록 참고
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid id/pw");
         }
 
@@ -105,11 +102,13 @@ public class MemberService {
         return memberRepository.existsByMid(mid);
     }
 
-    private static boolean isBlank(String s) { return s == null || s.isBlank(); }
+    private static boolean isBlank(String s) { 
+        return s == null || s.isBlank(); 
+    }
 
     public void updateProfile(String sid, MemberDTO dto) {
         MemberEntity entity = memberRepository.findByMid(sid)
-            .orElseThrow(() -> new RuntimeException("회원 없음"));
+                .orElseThrow(() -> new RuntimeException("회원 없음"));
         entity.setMemail(dto.getMemail());
         entity.setMtel(dto.getMtel());
         entity.setMaddr(dto.getMaddr());
@@ -117,17 +116,17 @@ public class MemberService {
         memberRepository.save(entity);
     }
 
-    public void changePw(String sid, String currentPassword, String newPassword) {
+    public void changePw(String sid, ChangePwDTO dto) {
         MemberEntity entity = memberRepository.findByMid(sid)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 없음"));
 
         // 현재 비밀번호 검증
-        if (!passwordEncoder.matches(currentPassword, entity.getMpw())) {
+        if (!passwordEncoder.matches(dto.getCurrentPw(), entity.getMpw())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "현재 비밀번호가 일치하지 않습니다.");
         }
 
-        // 새 비밀번호 해시 저장
-        entity.setMpw(passwordEncoder.encode(newPassword));
+        // 새 비밀번호 저장
+        entity.setMpw(passwordEncoder.encode(dto.getNewPw()));
         memberRepository.save(entity);
     }
 
@@ -139,14 +138,14 @@ public class MemberService {
 
     public String findIdByNameAndTel(String mname, String mtel) {
         return memberRepository.findByMnameAndMtel(mname, mtel)
-            .map(MemberEntity::getMid)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
+                .map(MemberEntity::getMid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
     }
 
     public String findIdByNameAndEmail(String mname, String memail) {
         return memberRepository.findByMnameAndMemail(mname, memail)
-            .map(MemberEntity::getMid)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
+                .map(MemberEntity::getMid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
     }
 
     public List<MemberDTO> findAll() {
@@ -180,7 +179,6 @@ public class MemberService {
         } else {
             ok = rawPw.equals(stored); // 기존 평문 비교
             if (ok) {
-                // 첫 성공 시 해시로 교체
                 e.setMpw(passwordEncoder.encode(rawPw));
                 memberRepository.save(e);
             }

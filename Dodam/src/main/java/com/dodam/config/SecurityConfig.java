@@ -42,8 +42,6 @@ public class SecurityConfig {
 
             // 4. URL 접근 권한을 설정합니다.
             .authorizeHttpRequests(auth -> auth
-                // '/admin/**' 경로는 목록 조회와 상세 조회를 모두 포함합니다.
-                // 테스트를 위해 모든 접근을 허용합니다.
                 .requestMatchers("/admin/**").permitAll() 
                 .anyRequest().permitAll()
             );
@@ -63,7 +61,7 @@ public class SecurityConfig {
         config.setExposedHeaders(List.of("*"));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config); // 모든 경로에 대해 이 CORS 설정을 적용합니다.
+        source.registerCorsConfiguration("/**", config);
         return source;
     }
 }
