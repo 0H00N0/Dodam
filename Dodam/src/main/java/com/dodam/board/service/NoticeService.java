@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service @RequiredArgsConstructor public class NoticeService {
   private final NoticeRepository repo; private final BoardService boards;
   @Transactional public NoticeResponse create(NoticeCreateRequest req){ BoardEntity b=boards.getByCodeOrThrow(req.getBoardCode());
-    NoticeEntity e=NoticeEntity.builder().boardcode(b).title(req.getTitle()).content(req.getContent()).pinned(req.isPinned()).build();
+    NoticeEntity e=NoticeEntity.builder().boardCode(b).title(req.getTitle()).content(req.getContent()).pinned(req.isPinned()).build();
     e=repo.save(e); return toDto(e); }
   public Page<NoticeResponse> list(String boardCode, Pageable p){ return repo.findByBoardCode(boardCode,p).map(this::toDto); }
   public NoticeResponse get(Long id, boolean inc){ NoticeEntity e=repo.findById(id).orElseThrow(()->new NotFoundException("공지 없음: id="+id));
