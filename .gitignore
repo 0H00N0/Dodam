@@ -65,10 +65,7 @@ out/
 # NetBeans
 # =========================
 /nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+.nb-gradle/
 
 # =========================
 # VS Code
@@ -79,5 +76,4 @@ out/
 # 기타
 # =========================
 HELP.md
-/Dodam/
 ".claude/settings.local.json"
