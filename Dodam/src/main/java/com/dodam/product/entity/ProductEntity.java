@@ -18,7 +18,7 @@ public class ProductEntity {
 
     @ManyToOne
     @JoinColumn(name = "catenum")
-    private CategoryEntity category; // 카테고리 참조
+    private Category category; // 카테고리 참조
 
     private Integer procreat; // 등록자 ID (쿠키에서 가져옴, Integer로 가정)
 

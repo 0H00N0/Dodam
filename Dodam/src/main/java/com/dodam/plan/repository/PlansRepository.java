@@ -10,4 +10,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface PlansRepository extends JpaRepository<PlansEntity, Long>{
 	Optional<PlansEntity> findByPlanCode(String planCode);
 	List<PlansEntity> findByPlanActiveTrue();
+	Optional<PlansEntity> findByPlanCodeIgnoreCase(String planCode);
 }
