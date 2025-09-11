@@ -132,14 +132,12 @@ public class MemberController {
     
  // 이메일로 비밀번호 변경 인증 (단순 인증, 비밀번호 변경은 별도 엔드포인트에서)
     @PostMapping("/findPwByMemail")
-    public ResponseEntity<?> verifyPwByMemail(
-        @RequestParam("mid") String mid,
-        @RequestParam("mname") String mname,
-        @RequestParam("memail") String memail
-    ) {
+    public ResponseEntity<?> verifyPwByMemail(@RequestBody Map<String, String> body) {
+        String mid = body.get("mid");
+        String mname = body.get("mname");
+        String memail = body.get("memail");
         boolean exists = memberService.existsByMidNameEmail(mid, mname, memail);
         if (exists) {
-            // 인증 성공: 프론트에서 비밀번호 변경 폼 보여주기
             return ResponseEntity.ok(Map.of("verified", true));
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -149,20 +147,19 @@ public class MemberController {
 
     // 전화번호로 비밀번호 변경 인증 (단순 인증, 비밀번호 변경은 별도 엔드포인트에서)
     @PostMapping("/findPwByMtel")
-    public ResponseEntity<?> verifyPwByMtel(
-        @RequestParam("mid") String mid,
-        @RequestParam("mname") String mname,
-        @RequestParam("mtel") String mtel
-    ) {
+    public ResponseEntity<?> verifyPwByMtel(@RequestBody Map<String, String> body) {
+        String mid = body.get("mid");
+        String mname = body.get("mname");
+        String mtel = body.get("mtel");
         boolean exists = memberService.existsByMidNameTel(mid, mname, mtel);
         if (exists) {
-            // 인증 성공: 프론트에서 비밀번호 변경 폼 보여주기
             return ResponseEntity.ok(Map.of("verified", true));
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", "일치하는 회원이 없습니다."));
         }
     }
+    
     //비로그인상태 비밀번호변경
     @PutMapping("/changePwDirect")
     public ResponseEntity<?> changePwDirect(@RequestBody ChangePwDTO dto) {
