@@ -139,6 +139,13 @@ public class MemberService {
         return memberRepository.findByMidAndMnameAndMtel(mid, mname, mtel).isPresent();
     }
     
+    public void changePwDirect(String mid, String newPw) {
+        MemberEntity entity = memberRepository.findByMid(mid)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 없음"));
+        entity.setMpw(passwordEncoder.encode(newPw));
+        memberRepository.save(entity);
+    }
+    
     /*
     // (선택) 기존 평문 비번 마이그레이션 예시:
     public MemberDTO loginWithSoftMigration(String mid, String rawPw) {

@@ -131,7 +131,7 @@ public class MemberController {
     }
     
  // 이메일로 비밀번호 변경 인증 (단순 인증, 비밀번호 변경은 별도 엔드포인트에서)
-    @PostMapping("/verifyPwByMemail")
+    @PostMapping("/findPwByMemail")
     public ResponseEntity<?> verifyPwByMemail(
         @RequestParam("mid") String mid,
         @RequestParam("mname") String mname,
@@ -148,7 +148,7 @@ public class MemberController {
     }
 
     // 전화번호로 비밀번호 변경 인증 (단순 인증, 비밀번호 변경은 별도 엔드포인트에서)
-    @PostMapping("/verifyPwByMtel")
+    @PostMapping("/findPwByMtel")
     public ResponseEntity<?> verifyPwByMtel(
         @RequestParam("mid") String mid,
         @RequestParam("mname") String mname,
@@ -162,5 +162,11 @@ public class MemberController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", "일치하는 회원이 없습니다."));
         }
+    }
+    //비로그인상태 비밀번호변경
+    @PutMapping("/changePwDirect")
+    public ResponseEntity<?> changePwDirect(@RequestBody ChangePwDTO dto) {
+        memberService.changePwDirect(dto.getMid(), dto.getNewPw());
+        return ResponseEntity.ok(Map.of("message", "비밀번호가 성공적으로 변경되었습니다."));
     }
 }
