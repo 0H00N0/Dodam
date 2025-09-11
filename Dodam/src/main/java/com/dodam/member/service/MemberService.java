@@ -124,11 +124,6 @@ public class MemberService {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
     }
 
-    // 임시 비밀번호 생성 로직
-    public String generateTempPassword() {
-        return UUID.randomUUID().toString().substring(0, 8);
-    }
-
     // 비밀번호 암호화 후 DB에 저장
     public void updatePassword(String mid, String tempPw) {
         MemberEntity member = memberRepository.findByMid(mid).orElseThrow();
@@ -136,13 +131,6 @@ public class MemberService {
         memberRepository.save(member);
     }
 
-    // 이메일 발송 
-    public void sendEmail(String to, String subject, String content) {
-    }
-    
-    // 문자 발송 
-    public void sendSms(String to, String content) {
-    }
     public boolean existsByMidNameEmail(String mid, String mname, String memail) {
         return memberRepository.findByMidAndMnameAndMemail(mid, mname, memail).isPresent();
     }
