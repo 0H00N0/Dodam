@@ -9,8 +9,11 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "portone")
 public class PlanPortoneProperties {
-    private String apiKey;
-    private String secret;
-    private String baseUrl;
-    private String storeId;
+    private String apiKey;      // (선택) 필요시 사용
+    private String secret;      // v2 Authorization: "PortOne {secret}"
+    private String baseUrl;     // 기본값: https://api.portone.io
+    private String storeId;     // (선택) 멀티스토어 사용 시
+    private String confirmPath; // (선택) 기본 /payments/confirm
+    private String pgName;      // (선택) 카드 메타에 넣을 PG명 표시용
+    private String paymentGetPrefix; // 기본값 "/payments/"
 }

@@ -19,7 +19,7 @@ public class PlanPaymentController {
     private final ObjectMapper om = new ObjectMapper();
 
     /** 결제 승인(confirm) — body: { paymentId, amount } */
-    @PostMapping("/confirm")
+    @PostMapping("/confirm-legacy")
     public ResponseEntity<?> confirm(@RequestBody Map<String, Object> body) {
         String paymentId = body.get("paymentId") != null ? body.get("paymentId").toString() : null;
         Long amount = null;
