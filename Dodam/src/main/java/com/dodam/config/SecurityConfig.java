@@ -12,27 +12,26 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.*;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 
 import java.util.List;
 
 @Configuration
-@EnableMethodSecurity
+@EnableWebSecurity
 @RequiredArgsConstructor
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final SessionAuthFilter sessionAuthFilter;
 
-    @Value("${app.frontend.url:http://localhost:3000}")
+    @Value("${front.origin:http://localhost:3000}")
     private String front;
-
-    @Bean
-    PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(); // 기본 strength 10
-    }
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+<<<<<<< HEAD
             .csrf(csrf -> csrf.disable())
             .cors(c -> c.configurationSource(corsSource()))
             .headers(h -> h.frameOptions(f -> f.disable())) // H2 콘솔 허용
@@ -53,13 +52,39 @@ public class SecurityConfig {
 
                 // ---- 그 외 ----
                 .anyRequest().permitAll()
+=======
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers(
+                    "/oauth/**",          // ✅ 소셜 엔드포인트 CSRF 예외
+                    "/member/**"          // (필요 시 유지)
+                )
+>>>>>>> branch 'chan787' of https://github.com/0H00N0/Dodam.git
             )
+<<<<<<< HEAD
             .httpBasic(b -> b.disable())  // REST 방식 → 기본 인증 비활성화
             .formLogin(f -> f.disable());
+=======
+            .cors(cors -> cors.configurationSource(corsSource()))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/", "/index.html",
+                    "/oauth/**",          // ✅ 소셜 엔드포인트 허용
+                    "/member/signup",     // 회원가입
+                    "/member/loginForm",  // 로컬 로그인
+                    "/static/**", "/favicon.ico"
+                ).permitAll()
+                .anyRequest().authenticated()
+            )
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            .addFilterBefore(sessionAuthFilter, UsernamePasswordAuthenticationFilter.class);
+>>>>>>> branch 'chan787' of https://github.com/0H00N0/Dodam.git
 
+<<<<<<< HEAD
         // 세션 인증 필터 등록
         http.addFilterBefore(sessionAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
+=======
+>>>>>>> branch 'chan787' of https://github.com/0H00N0/Dodam.git
         return http.build();
     }
 
@@ -74,4 +99,7 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", cfg);
         return source;
     }
+
+    @Bean
+    PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
 }
