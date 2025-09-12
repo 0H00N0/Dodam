@@ -25,6 +25,7 @@ repositories {
 }
 
 dependencies {
+   runtimeOnly 'com.oracle.database.jdbc:ojdbc17'
    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
    implementation 'org.springframework.boot:spring-boot-starter-validation'
    implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -32,8 +33,8 @@ dependencies {
    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
    implementation 'org.springframework.security:spring-security-crypto'
    implementation 'org.springframework.boot:spring-boot-starter-webflux'
-   implementation 'org.apache.poi:poi-ooxml'
-   runtimeOnly 'com.oracle.database.jdbc:ojdbc17'
+   annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+   
    compileOnly 'org.projectlombok:lombok'
    developmentOnly 'org.springframework.boot:spring-boot-devtools'
    runtimeOnly 'com.h2database:h2'
@@ -41,8 +42,13 @@ dependencies {
    testImplementation 'org.springframework.boot:spring-boot-starter-test'
    testImplementation 'org.springframework.security:spring-security-test'
    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+   implementation 'com.fasterxml.jackson.core:jackson-databind'
 }
 
 tasks.named('test') {
    useJUnitPlatform()
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs << "-parameters"
 }
