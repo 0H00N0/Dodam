@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
 public class ChangePwDTO {
+	String mid;
 	String currentPw;
 	String newPw;
 }

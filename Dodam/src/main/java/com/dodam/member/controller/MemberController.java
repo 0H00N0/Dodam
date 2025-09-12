@@ -111,16 +111,59 @@ public class MemberController {
 
     
  // 이름+전화번호로 아이디 찾기
-    @GetMapping("/findid/tel")
-    public ResponseEntity<?> findIdByNameAndTel(@RequestParam String mname, @RequestParam String mtel) {
+    @GetMapping("/findIdByTel")
+    public ResponseEntity<?> findIdByNameAndTel(
+        @RequestParam("mname") String mname,
+        @RequestParam("mtel") String mtel
+    ) {
         String mid = memberService.findIdByNameAndTel(mname, mtel);
         return ResponseEntity.ok(Map.of("mid", mid));
     }
 
     // 이름+이메일로 아이디 찾기
-    @GetMapping("/findid/email")
-    public ResponseEntity<?> findIdByNameAndEmail(@RequestParam String mname, @RequestParam String memail) {
+    @GetMapping("/findIdByEmail")
+    public ResponseEntity<?> findIdByNameAndEmail(
+        @RequestParam("mname") String mname,
+        @RequestParam("memail") String memail
+    ) {
         String mid = memberService.findIdByNameAndEmail(mname, memail);
         return ResponseEntity.ok(Map.of("mid", mid));
+    }
+    
+ // 이메일로 비밀번호 변경 인증 (단순 인증, 비밀번호 변경은 별도 엔드포인트에서)
+    @PostMapping("/findPwByMemail")
+    public ResponseEntity<?> verifyPwByMemail(@RequestBody Map<String, String> body) {
+        String mid = body.get("mid");
+        String mname = body.get("mname");
+        String memail = body.get("memail");
+        boolean exists = memberService.existsByMidNameEmail(mid, mname, memail);
+        if (exists) {
+            return ResponseEntity.ok(Map.of("verified", true));
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "일치하는 회원이 없습니다."));
+        }
+    }
+
+    // 전화번호로 비밀번호 변경 인증 (단순 인증, 비밀번호 변경은 별도 엔드포인트에서)
+    @PostMapping("/findPwByMtel")
+    public ResponseEntity<?> verifyPwByMtel(@RequestBody Map<String, String> body) {
+        String mid = body.get("mid");
+        String mname = body.get("mname");
+        String mtel = body.get("mtel");
+        boolean exists = memberService.existsByMidNameTel(mid, mname, mtel);
+        if (exists) {
+            return ResponseEntity.ok(Map.of("verified", true));
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "일치하는 회원이 없습니다."));
+        }
+    }
+    
+    //비로그인상태 비밀번호변경
+    @PutMapping("/changePwDirect")
+    public ResponseEntity<?> changePwDirect(@RequestBody ChangePwDTO dto) {
+        memberService.changePwDirect(dto.getMid(), dto.getNewPw());
+        return ResponseEntity.ok(Map.of("message", "비밀번호가 성공적으로 변경되었습니다."));
     }
 }

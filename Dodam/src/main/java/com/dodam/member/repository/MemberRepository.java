@@ -13,5 +13,13 @@ public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
 
 	// 이름+이메일로 찾기
 	Optional<MemberEntity> findByMnameAndMemail(String mname, String memail);
+	
+	// 이메일로 비밀번호 찾기
+	Optional<MemberEntity> findByMidAndMnameAndMemail(String mid, String mname, String memail);
+
+	//전화번호로 비밀번호 찾기
+	Optional<MemberEntity> findByMidAndMnameAndMtel(String mid, String mname, String mtel);
+
+
 }
 
