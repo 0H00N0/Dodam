@@ -1,57 +1,46 @@
 package com.dodam.plan.service;
 
-import com.dodam.plan.config.PlanPortoneProperties;
-import com.dodam.plan.dto.PlanPortoneBillingKeyDTO;
-import com.fasterxml.jackson.databind.JsonNode;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.MediaType;
-import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import com.dodam.plan.dto.PlanCardMeta;
 
-import java.util.Map;
+public interface PlanPaymentGatewayService {
 
-@Service
-@RequiredArgsConstructor
-public class PlanPaymentGatewayService {
+	/** v2: 빌링키로 즉시 승인 */
+    PayResult payByBillingKey(String billingKey, long amount, String customerId);
 
-    private final PlanPortoneProperties portone;
-    private final WebClient webClient = WebClient.builder().build();
-
-    /**
-     * ✅ 카드 등록 → BillingKey 발급
-     */
-    public Mono<PlanPortoneBillingKeyDTO> registerBillingKey(Map<String, Object> req) {
-        return webClient.post()
-            .uri("https://api.portone.io/v2/billing-keys")
-            .header("Authorization", "PortOne " + portone.getApiKey() + ":" + portone.getSecret())
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(req)
-            .retrieve()
-            .onStatus(HttpStatusCode::isError, resp ->
-                resp.bodyToMono(String.class).flatMap(body ->
-                    Mono.error(new RuntimeException("PORTONE_ERROR " + resp.statusCode() + " " + body))
-                )
-            )
-            .bodyToMono(PlanPortoneBillingKeyDTO.class);
+    /** (호환) 예전 호출 시그니처: uid는 내부 결제 식별자 용도로만 쓰였으므로 무시하고 위 메서드로 위임 */
+    default PayResult payWithBillingKey(String uid, String customerId, String billingKey, long amount) {
+        return payByBillingKey(billingKey, amount, customerId);
     }
 
-    /**
-     * ✅ 결제 승인 (paymentId + amount)
-     */
-    public Mono<JsonNode> confirmPayment(String paymentId, Long amount) {
-        return webClient.post()
-            .uri("https://api.portone.io/v2/payments/" + paymentId + "/confirm")
-            .header("Authorization", "PortOne " + portone.getApiKey() + ":" + portone.getSecret())
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(Map.of("amount", amount))
-            .retrieve()
-            .onStatus(HttpStatusCode::isError, resp ->
-                resp.bodyToMono(String.class).flatMap(body ->
-                    Mono.error(new RuntimeException("PORTONE_ERROR " + resp.statusCode() + " " + body))
-                )
-            )
-            .bodyToMono(JsonNode.class);
+    /** (호환) ‘결제아이디 + 금액’으로 확인 호출하던 레거시 코드 지원 */
+    PayResult confirmPaymentRaw(String paymentId, long amount);
+
+    /** (호환) PG 조회(브랜드, BIN, last4, billingKey 등) */
+    PgLookupResult safeLookup(String txId, String paymentId);
+
+    /** 결제 원문에서 카드 메타 추출 */
+    PlanCardMeta extractCardMeta(String rawJson);
+
+    // ======= Result Types =======
+    interface PayResult {
+        boolean success();
+        String paymentId();
+        String receiptUrl();
+        String failReason();
+        String rawJson();
+
+        /** (호환) 과거 코드에서 uid()를 쓰므로 paymentId()와 동일하게 제공 */
+        default String uid() { return paymentId(); }
+    }
+
+    interface PgLookupResult {
+        String txId();        // 내부 txId (넘겨받은 값 그대로 echo)
+        String paymentId();   // PG 결제 id
+        String pg();          // 예: TOSSPAYMENTS, KCP ...
+        String brand();       // 예: VISA, MASTER, 하나카드 등
+        String bin();         // 6~8자리
+        String last4();       // 4자리
+        String billingKey();  // 저장된 빌링키
+        String rawJson();     // 원문
     }
 }

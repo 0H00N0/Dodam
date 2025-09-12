@@ -1,151 +1,113 @@
+// src/main/java/com/dodam/plan/controller/PlanPaymentMethodController.java
 package com.dodam.plan.controller;
 
-import com.dodam.plan.service.PlanPaymentGatewayService;
-import com.dodam.plan.service.PlanPaymentProfileService;
-import com.dodam.plan.repository.PlanPaymentRepository;
-import com.dodam.member.repository.MemberRepository;
+import com.dodam.plan.dto.PlanPaymentRegisterReq;
 import com.dodam.plan.Entity.PlanPaymentEntity;
+import com.dodam.plan.repository.PlanPaymentRepository;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 
-/**
- * 세션 기반( sid )으로 회원 식별 후, PortOne SDK로 얻은 customerId/billingKey/카드메타를 저장/조회/삭제
- */
+@Slf4j
 @RestController
-@RequestMapping("/billing-keys")
 @RequiredArgsConstructor
+@RequestMapping("/billing-keys")
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class PlanPaymentMethodController {
 
-    private final PlanPaymentProfileService profileSvc;
     private final PlanPaymentRepository paymentRepo;
-    private final MemberRepository memberRepo;
-    private final PlanPaymentGatewayService gateway;
     
-    private Long resolveMnum(HttpSession session) {
-        Object cached = session.getAttribute("mnum");
-        if (cached instanceof Long m) return m;
+    @GetMapping("/customer-id")
+    public ResponseEntity<?> customerId(HttpSession session) {
+        String mid = (String) session.getAttribute("sid");
+        if (!StringUtils.hasText(mid)) {
+            // 500 대신 명시적으로 401을 리턴
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                                 .body(Map.of("error", "LOGIN_REQUIRED"));
+        }
 
-        Object sid = session.getAttribute("sid"); // 문자열 아이디
-        if (!(sid instanceof String mid)) return null;
-
-        var member = memberRepo.findByMid(mid).orElse(null);
-        if (member == null) return null;
-
-        Long mnum = member.getMnum();
-        session.setAttribute("mnum", mnum); // ✅ 이후 요청부터는 조회 없음
-        return mnum;
+        String customerId = "CUST-" + mid;
+        return ResponseEntity.ok(Map.of("customerId", customerId));
     }
-    
-    /**
-     * 빌링키 등록/갱신
-     * 프론트에서 PortOne SDK로 카드 인증 완료 후 customerId, billingKey, 카드메타(pg/brand/bin/last4) 전달
-     */
+
     @PostMapping
-    @Transactional
-    public ResponseEntity<?> register(HttpSession session, @RequestBody BillingKeyReq req) {
-        Long mnum = (Long) session.getAttribute("sid");
-        if (mnum == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    public ResponseEntity<?> register(@RequestBody PlanPaymentRegisterReq req, HttpSession session) {
+    	String mid = (String) session.getAttribute("sid");
+        if (!StringUtils.hasText(mid)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error","LOGIN_REQUIRED"));
+        }
+        // billingKey 필수 + 최소 길이 검증 (샌드박스도 보통 16자 이상)
+        if (!StringUtils.hasText(req.billingKey()) || req.billingKey().trim().length() < 8) {
+            return ResponseEntity.badRequest().body(Map.of("error","MISSING_OR_INVALID_BILLING_KEY"));
+        }
 
-        // 1) 고객 프로필 upsert (회원-mnum X PG customerId 1:1 유니크 보장)
-        PlanPaymentEntity pp = profileSvc.upsert(
-                mnum,
-                req.customerId(),
-                nullToEmpty(req.pg()),
-                nullToEmpty(req.brand()),
-                nullToEmpty(req.bin()),
-                nullToEmpty(req.last4())
-        );
+        String customerId = "CUST-" + mid;
 
-        // 2) 빌링키 저장/갱신
-        pp.setPayKey(req.billingKey());
-        // 필요 시 활성화 플래그가 있다면: pp.setActive(true);
-        paymentRepo.save(pp);
+        // upsert
+        PlanPaymentEntity entity = paymentRepo.findByPayCustomer(customerId)
+                .orElseGet(() -> PlanPaymentEntity.builder()
+                        .mid(mid)
+                        .payCustomer(customerId)
+                        .build());
 
-        return ResponseEntity.ok(new BillingKeyRes(pp.getPayId(), pp.getPayCustomer(), maskLast4(pp.getPayLast4())));
+        entity.setPayKey(req.billingKey());
+        entity.setPayPg(req.pg());
+        entity.setPayBrand(req.brand());
+        entity.setPayBin(req.bin());
+        entity.setPayLast4(req.last4());
+        entity.setPayRaw(req.raw());
+
+        try {
+            paymentRepo.save(entity);
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("DUPLICATE");
+        } catch (Exception e) {
+            log.error("REGISTER_BILLING_KEY_FAIL", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("INTERNAL_ERROR");
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "result","ok",
+                "payId", entity.getPayId(),
+                "customerId", entity.getPayCustomer(),
+                "pg", entity.getPayPg(),
+                "brand", entity.getPayBrand(),
+                "bin", entity.getPayBin(),
+                "last4", entity.getPayLast4()
+        ));
     }
 
-    /**
-     * 내 빌링키 목록 보기
-     */
     @GetMapping("/list")
     public ResponseEntity<?> list(HttpSession session) {
-        Long mnum = resolveMnum(session);
-        if (mnum == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
-        var list = paymentRepo.findByMemberMnum(mnum).stream()
-            .map(pp -> new BillingKeyItem(
-                pp.getPayId(),
-                nullSafe(pp.getPayCustomer()),
-                nullSafe(pp.getPayPg()),
-                nullSafe(pp.getPayBrand()),
-                nullSafe(pp.getPayBin()),
-                maskLast4(pp.getPayLast4()),
-                pp.getPayKey() != null && !pp.getPayKey().isBlank()
-            ))
-            .toList();
-
+        String mid = (String) session.getAttribute("sid");
+        if (!StringUtils.hasText(mid)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("LOGIN_REQUIRED");
+        }
+        List<PlanPaymentEntity> list = paymentRepo.findAllByMid(mid);
         return ResponseEntity.ok(list);
     }
 
-
-    /**
-     * 빌링키 삭제 (주의: PG의 customer/billingKey 삭제 호출이 필요하면 profileSvc에 위임해서 함께 처리)
-     */
-    @DeleteMapping("/{payId}")
-    @Transactional
-    public ResponseEntity<?> delete(HttpSession session, @PathVariable Long payId) {
-        Long mnum = (Long) session.getAttribute("sid");
-        if (mnum == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
-        var pp = paymentRepo.findById(payId).orElse(null);
-        if (pp == null || !pp.getMember().getMnum().equals(mnum)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id, HttpSession session) {
+        String mid = (String) session.getAttribute("sid");
+        if (!StringUtils.hasText(mid)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "LOGIN_REQUIRED");
         }
-
-        // 필요 시 PortOne에 customer/billingKey 삭제 API 호출 → profileSvc에 메서드 추가하여 처리
-        // profileSvc.deleteOnGateway(pp.getPayCustomer(), pp.getPayKey());
-
-        paymentRepo.delete(pp);
-        return ResponseEntity.noContent().build();
+        PlanPaymentEntity target = paymentRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "NOT_FOUND"));
+        if (!mid.equals(target.getMid())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "FORBIDDEN");
+        }
+        paymentRepo.delete(target);
+        return ResponseEntity.ok(Map.of("result","ok"));
     }
-
-    // ===== DTOs =====
-
-    public record BillingKeyReq(
-            String customerId,
-            String billingKey,
-            String pg,      // 예: "toss-payments"
-            String brand,   // 예: "KB", "Hyundai"
-            String bin,     // 카드 BIN (앞 6)
-            String last4    // 카드 뒤 4
-    ) {}
-
-    public record BillingKeyRes(
-            Long payId,
-            String customerId,
-            String last4Masked
-    ) {}
-
-    public record BillingKeyItem(
-            Long payId,
-            String customerId,
-            String pg,
-            String brand,
-            String bin,
-            String last4Masked,
-            boolean hasBillingKey
-    ) {}
-
-    private static String nullToEmpty(String s) { return s == null ? "" : s; }
-    private static String maskLast4(String last4){
-        return (last4 == null || last4.isBlank()) ? "" : "****-****-****-" + last4;
-    }
-    
-    private static String nullSafe(String s){ return s == null ? "" : s; }
 }

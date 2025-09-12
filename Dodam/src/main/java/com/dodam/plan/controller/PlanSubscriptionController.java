@@ -1,51 +1,49 @@
 package com.dodam.plan.controller;
 
-import com.dodam.plan.service.PlanPaySubService;
 import com.dodam.plan.enums.PlanEnums.PmBillingMode;
+import com.dodam.plan.service.PlanPaySubService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.*;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.math.BigDecimal;
+import java.util.Map;
 
-/**
- * 구독 시작 / 내 구독 조회 등 (세션 기반)
- */
+@Slf4j
 @RestController
 @RequestMapping("/sub")
 @RequiredArgsConstructor
 public class PlanSubscriptionController {
 
-    private final PlanPaySubService subSvc;
+  private final PlanPaySubService subSvc;
 
-    /**
-     * 구독 시작 (PlanMember + 첫 Invoice 생성)
-     */
-    @PostMapping
-    public ResponseEntity<StartRes> start(HttpSession session,
-                                          @RequestBody StartReq req) {
-        Long mnum = (Long) session.getAttribute("sid");
-        if (mnum == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+  public record StartSimpleReq(String planCode, Integer months) {}
 
-        var pm = subSvc.start(
-                mnum,
-                req.planId(),
-                req.ppriceId(),
-                req.ptermId(),
-                req.payId(),
-                req.mode(),
-                req.firstAmount()
-        );
-
-        return ResponseEntity.ok(new StartRes(pm.getPmId()));
+  @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<?> start(@RequestBody StartSimpleReq req, HttpSession session) {
+    String mid = (String) session.getAttribute("sid");
+    if (!StringUtils.hasText(mid)) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "LOGIN_REQUIRED");
+    }
+    if (req == null || !StringUtils.hasText(req.planCode())) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "MISSING_PLAN_CODE");
+    }
+    if (req.months() == null || req.months() <= 0) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "INVALID_MONTHS");
     }
 
-    // 요청 DTO
-    public record StartReq(Long planId, Long ppriceId, Long ptermId,
-                           Long payId, PmBillingMode mode, BigDecimal firstAmount) {}
+    PmBillingMode mode = (req.months() == 1) ? PmBillingMode.MONTHLY : PmBillingMode.PREPAID_TERM;
 
-    // 응답 DTO
-    public record StartRes(Long pmId) {}
+    log.info("SUBSCRIBE start mid={}, planCode={}, months={}, mode={}", mid, req.planCode(), req.months(), mode);
+
+    var result = subSvc.startByCodeAndMonths(mid, req.planCode(), req.months(), mode);
+
+    return ResponseEntity.ok(Map.of(
+        "pmId", result.pmId(),
+        "invoiceId", result.invoiceId()
+    ));
+  }
 }
