@@ -22,7 +22,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: create-drop  # 개발 환경: create-drop, 운영 환경: validate
+      ddl-auto: validate  # 개발 환경: create-drop, 운영 환경: validate
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
     show-sql: true
@@ -39,7 +39,7 @@ spring:
   # SQL 초기화
   sql:
     init:
-      mode: always
+      mode: never
       data-locations: classpath:data/data.sql
       schema-locations: classpath:schema/schema.sql
   
