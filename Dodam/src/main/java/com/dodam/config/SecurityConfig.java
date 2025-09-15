@@ -31,24 +31,33 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf
-                .ignoringRequestMatchers(
-                    "/oauth/**",          // ✅ 소셜 엔드포인트 CSRF 예외
-                    "/member/**"          // (필요 시 유지)
-                )
-            )
+            // CORS
             .cors(cors -> cors.configurationSource(corsSource()))
+            // CSRF: 상태변경 엔드포인트만 예외
+            .csrf(csrf -> csrf.ignoringRequestMatchers(
+                "/oauth/**",
+                "/member/loginForm",
+                "/member/logout",
+                "/member/updateProfile",
+                "/member/changePw",
+                "/member/changePwDirect",
+                "/member/signup"
+            ))
+            // 인가
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/", "/index.html",
-                    "/oauth/**",          // ✅ 소셜 엔드포인트 허용
-                    "/member/signup",     // 회원가입
-                    "/member/loginForm",  // 로컬 로그인
-                    "/static/**", "/favicon.ico"
+                    "/static/**", "/favicon.ico",
+                    "/oauth/**",              // 소셜 엔드포인트 허용
+                    "/member/signup",         // 회원가입 허용
+                    "/member/loginForm"       // 로컬 로그인 허용
                 ).permitAll()
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // 프리플라이트 허용
                 .anyRequest().authenticated()
             )
+            // 세션 기반
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            // 세션 인증 주입 필터
             .addFilterBefore(sessionAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -56,16 +65,23 @@ public class SecurityConfig {
 
     @Bean
     CorsConfigurationSource corsSource() {
-        CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of(front, "http://127.0.0.1:3000"));
-        cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-        cfg.setAllowedHeaders(List.of("*"));
-        cfg.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", cfg);
-        return source;
+        CorsConfiguration c = new CorsConfiguration();
+        c.setAllowCredentials(true); // axios withCredentials:true 매칭
+        c.setAllowedOrigins(List.of(
+            front,                      // ex) http://localhost:3000
+            "http://127.0.0.1:3000"
+        ));
+        c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
+        c.setAllowedHeaders(List.of("*"));
+        // 필요시 노출헤더: c.setExposedHeaders(List.of("Set-Cookie"));
+
+        UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
+        src.registerCorsConfiguration("/**", c);
+        return src;
     }
 
     @Bean
-    PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 }

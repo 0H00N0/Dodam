@@ -146,28 +146,11 @@ public class MemberService {
         memberRepository.save(entity);
     }
     
-    /*
-    // (선택) 기존 평문 비번 마이그레이션 예시:
-    public MemberDTO loginWithSoftMigration(String mid, String rawPw) {
+    public MemberDTO findByMid(String mid) {
         var e = memberRepository.findByMid(mid)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid id/pw"));
-
-        String stored = e.getMpw();
-        boolean looksHashed = stored != null && stored.startsWith("$2"); // BCrypt
-        boolean ok;
-
-        if (looksHashed) {
-            ok = passwordEncoder.matches(rawPw, stored);
-        } else {
-            ok = rawPw.equals(stored); // 기존 평문 비교
-            if (ok) {
-                // 첫 성공 시 해시로 교체
-                e.setMpw(passwordEncoder.encode(rawPw));
-                memberRepository.save(e);
-            }
-        }
-        if (!ok) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid id/pw");
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "no member"));
         return new MemberDTO(e);
     }
-    */
+
+    
 }

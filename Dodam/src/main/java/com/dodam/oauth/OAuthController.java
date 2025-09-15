@@ -16,6 +16,7 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -134,14 +135,18 @@ public class OAuthController {
         ));
     }
 
-    @GetMapping("/me")
+    @GetMapping(value = "/me", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> me(HttpSession session) {
-        Object sid = session.getAttribute("sid");
-        if (sid == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("login", false));
-        }
-        return ResponseEntity.ok(Map.of("login", true, "sid", sid));
+        String sid = (session != null) ? (String) session.getAttribute("sid") : null;
+
+        // Map.of 는 null 금지 → LinkedHashMap 사용 + null 값은 put 하지 않음
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("login", sid != null);
+        if (sid != null) body.put("sid", sid);
+
+        return ResponseEntity.ok(body);
     }
+
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpSession session) {
