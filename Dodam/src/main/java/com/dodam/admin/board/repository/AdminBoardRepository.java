@@ -7,12 +7,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
+		
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Repository
-public interface BoardRepository extends JpaRepository<BoardEntity, Long> {
+public interface AdminBoardRepository extends JpaRepository<BoardEntity, Long> {
 
     /**
      * 게시글 검색 및 필터링 (복합 조건)
