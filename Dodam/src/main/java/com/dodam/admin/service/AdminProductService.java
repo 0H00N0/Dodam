@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.List; 
 import java.util.stream.Collectors; 
   
 @Service
@@ -73,12 +73,12 @@ public class AdminProductService {
         return AdminProductDto.Response.fromEntity(updatedProduct);
     }
 
-    // Delete
+    // Delete (Soft Delete)
     @Transactional
     public void deleteProduct(Long productId) {
-        if (!productRepository.existsById(productId)) {
-            throw new EntityNotFoundException("Product not found with id: " + productId);
-        }
-        productRepository.deleteById(productId);
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + productId));
+        product.delete();
+        productRepository.save(product);
     }
 }
