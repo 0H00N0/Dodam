@@ -15,31 +15,35 @@ public class ApiExceptionHandler {
   @ExceptionHandler(ResponseStatusException.class)
   public ResponseEntity<?> handleRse(ResponseStatusException e) {
     return ResponseEntity.status(e.getStatusCode())
-        .body(Map.of("message", e.getReason()));
+        .body(Map.of("error", e.getReason()));
   }
 
+  // FK/NOT NULL/UNIQUE 위반 등 → 409로 정리
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<?> handleDiv(DataIntegrityViolationException e) {
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+        .body(Map.of("error", "data constraint violation"));
+  }
+
+  // DTO @Valid 실패
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<?> handleValid(MethodArgumentNotValidException e) {
+    var fe = e.getBindingResult().getFieldError();
+    String msg = (fe != null ? fe.getDefaultMessage() : "validation error");
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", msg));
+  }
+
+  // JSON 파싱 실패
   @ExceptionHandler(HttpMessageNotReadableException.class)
   public ResponseEntity<?> handleUnreadable(HttpMessageNotReadableException e) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .body(Map.of("message", "MALFORMED_JSON"));
+        .body(Map.of("error", "malformed json"));
   }
 
-  @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<?> handleBind(MethodArgumentNotValidException e) {
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-        .body(Map.of("message", "VALIDATION_FAILED"));
-  }
-
-  @ExceptionHandler(DataIntegrityViolationException.class)
-  public ResponseEntity<?> handleConstraint(DataIntegrityViolationException e) {
-    return ResponseEntity.status(HttpStatus.CONFLICT)
-        .body(Map.of("message", "DB_CONSTRAINT_VIOLATION"));
-  }
-
+  // 최종 안전망
   @ExceptionHandler(Exception.class)
   public ResponseEntity<?> handleAny(Exception e) {
-    // 개발 중에는 500의 원인을 프론트에서 볼 수 있게 간단 코드도 함께
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .body(Map.of("message", "INTERNAL_SERVER_ERROR"));
+        .body(Map.of("error", "internal server error"));
   }
 }
