@@ -8,14 +8,14 @@ import org.springframework.data.domain.Sort;
 import java.util.List;
 
 @Repository
-public interface AdminNoticeRepository extends JpaRepository<NoticeEntity, Long> {
-    List<NoticeEntity> findByIsActiveTrueOrderByCreatedAtDesc();
-    List<NoticeEntity> findAllByOrderByCreatedAtDesc();
+public interface AdminNoticeRepository extends JpaRepository<AdminNoticeEntity, Long> {
+    List<AdminNoticeEntity> findByIsActiveTrueOrderByCreatedAtDesc();
+    List<AdminNoticeEntity> findAllByOrderByCreatedAtDesc();
     
-    default List<NoticeEntity> findTopNOrderByCreatedAtDesc(int n) {
+    default List<AdminNoticeEntity> findTopNOrderByCreatedAtDesc(int n) {
         return findAll(PageRequest.of(0, n, Sort.by(Sort.Direction.DESC, "createdAt"))).getContent();
     }
-    default List<NoticeEntity> findTopNOrderByIdDesc(int n) {
+    default List<AdminNoticeEntity> findTopNOrderByIdDesc(int n) {
         return findAll(PageRequest.of(0, n, Sort.by(Sort.Direction.DESC, "id"))).getContent();
     }
 }

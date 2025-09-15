@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class NoticeDTO {
+public class AdminNoticeDTO {
     private Long id;
     private String title;
     private String content;

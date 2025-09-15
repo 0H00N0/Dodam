@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface BoardCategoryRepository extends JpaRepository<BoardCategoryEntity, Long> {
+public interface AdminBoardCategoryRepository extends JpaRepository<AdminBoardCategoryEntity, Long> {
 
     /**
      * 카테고리명 중복 체크
@@ -23,6 +23,6 @@ public interface BoardCategoryRepository extends JpaRepository<BoardCategoryEnti
     /**
      * 모든 카테고리와 게시글 수 조회
      */
-    @Query("SELECT bc FROM BoardCategoryEntity bc LEFT JOIN FETCH bc.boards")
+    @Query("SELECT bc FROM AdminBoardCategoryEntity bc LEFT JOIN FETCH bc.boards")
     List<BoardCategoryEntity> findAllWithBoardCount();
 }

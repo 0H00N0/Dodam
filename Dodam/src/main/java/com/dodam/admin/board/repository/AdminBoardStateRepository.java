@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface BoardStateRepository extends JpaRepository<BoardStateEntity, Long> {
+public interface AdminBoardStateRepository extends JpaRepository<BoardStateEntity, Long> {
 
 	
     /**

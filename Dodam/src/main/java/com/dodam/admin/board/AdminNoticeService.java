@@ -15,24 +15,24 @@ import java.util.stream.Collectors;
 @Profile("admin")
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class NoticeService {
+public class AdminNoticeService {
 
     private final AdminNoticeRepository noticeRepository;
 
-    public List<NoticeEntity> findAll() {
+    public List<AdminNoticeEntity> findAll() {
         return noticeRepository.findAllByOrderByCreatedAtDesc();
     }
 
-    public Optional<NoticeEntity> findById(Long id) {
+    public Optional<AdminNoticeEntity> findById(Long id) {
         return noticeRepository.findById(id);
     }
 
-    public List<NoticeEntity> findActiveNotices() {
+    public List<AdminNoticeEntity> findActiveNotices() {
         return noticeRepository.findByIsActiveTrueOrderByCreatedAtDesc();
     }
 
     @Transactional
-    public NoticeEntity save(NoticeEntity notice) {
+    public AdminNoticeEntity save(AdminNoticeEntity notice) {
         return noticeRepository.save(notice);
     }
 
@@ -42,26 +42,26 @@ public class NoticeService {
     }
 
     @Transactional
-    public void delete(NoticeEntity notice) {
+    public void delete(AdminNoticeEntity notice) {
         noticeRepository.delete(notice);
     }
 
     // DTO 변환 메서드들 (API 컨트롤러용)
-    public List<NoticeDTO> findAllNotices() {
+    public List<AdminNoticeDTO> findAllNotices() {
         return findAll().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public NoticeDTO createNotice(NoticeDTO noticeDTO) {
-        NoticeEntity entity = convertToEntity(noticeDTO);
-        NoticeEntity savedEntity = noticeRepository.save(entity);
+    public AdminNoticeDTO createNotice(AdminNoticeDTO noticeDTO) {
+    	AdminNoticeEntity entity = convertToEntity(noticeDTO);
+    	AdminNoticeEntity savedEntity = noticeRepository.save(entity);
         return convertToDTO(savedEntity);
     }
 
-    private NoticeDTO convertToDTO(NoticeEntity entity) {
-        return NoticeDTO.builder()
+    private AdminNoticeDTO convertToDTO(AdminNoticeEntity entity) {
+        return AdminNoticeDTO.builder()
                 .id(entity.getId())
                 .title(entity.getTitle())
                 .content(entity.getContent())
@@ -72,8 +72,8 @@ public class NoticeService {
                 .build();
     }
 
-    private NoticeEntity convertToEntity(NoticeDTO dto) {
-        return NoticeEntity.builder()
+    private AdminNoticeEntity convertToEntity(AdminNoticeDTO dto) {
+        return AdminNoticeEntity.builder()
                 .id(dto.getId())
                 .title(dto.getTitle())
                 .content(dto.getContent())
@@ -81,17 +81,17 @@ public class NoticeService {
                 .isActive(dto.getIsActive())
                 .build();
     }
-    public List<NoticeDTO> latest(int limit) {
+    public List<AdminNoticeDTO> latest(int limit) {
     	  Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdAt", "id"));
-          Page<NoticeEntity> page = noticeRepository.findAll(pageable);
+          Page<AdminNoticeEntity> page = noticeRepository.findAll(pageable);
 
         return page.getContent().stream()
                 .map(this::toDto)  
                 .toList();
     }
-    private NoticeDTO toDto(NoticeEntity entity) {  
+    private AdminNoticeDTO toDto(AdminNoticeEntity entity) {  
         if (entity == null) return null;
-        NoticeDTO dto = new NoticeDTO();
+        AdminNoticeDTO dto = new AdminNoticeDTO();
         BeanUtils.copyProperties(entity, dto);
         return dto;
     }
