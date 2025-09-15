@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class NoticeService {
 
-    private final NoticeRepository noticeRepository;
+    private final AdminNoticeRepository noticeRepository;
 
     public List<NoticeEntity> findAll() {
         return noticeRepository.findAllByOrderByCreatedAtDesc();

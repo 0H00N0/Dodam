@@ -8,7 +8,7 @@ import org.springframework.data.domain.Sort;
 import java.util.List;
 
 @Repository
-public interface NoticeRepository extends JpaRepository<NoticeEntity, Long> {
+public interface AdminNoticeRepository extends JpaRepository<NoticeEntity, Long> {
     List<NoticeEntity> findByIsActiveTrueOrderByCreatedAtDesc();
     List<NoticeEntity> findAllByOrderByCreatedAtDesc();
     
