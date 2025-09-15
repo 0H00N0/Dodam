@@ -4,9 +4,9 @@ import com.dodam.admin.board.dto.AdminBoardDTO.*;
 import com.dodam.board.entity.BoardEntity;
 import com.dodam.board.entity.BoardCategoryEntity;
 import com.dodam.board.entity.BoardStateEntity;
-import com.dodam.admin.board.repository.BoardRepository;
-import com.dodam.admin.board.repository.BoardCategoryRepository;
-import com.dodam.admin.board.repository.BoardStateRepository;
+import com.dodam.admin.board.repository.AdminBoardRepository;
+import com.dodam.admin.board.repository.AdminBoardCategoryRepository;
+import com.dodam.admin.board.repository.AdminBoardStateRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
@@ -22,9 +22,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AdminBoardService {
 
-    private final BoardRepository boardRepository;
-    private final BoardCategoryRepository boardCategoryRepository;
-    private final BoardStateRepository boardStateRepository;
+    private final AdminBoardRepository boardRepository;
+    private final AdminBoardCategoryRepository boardCategoryRepository;
+    private final AdminBoardStateRepository boardStateRepository;
 
     /**
      * 게시글 목록 조회 (검색 및 필터링 포함)

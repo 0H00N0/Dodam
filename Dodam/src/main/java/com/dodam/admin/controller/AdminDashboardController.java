@@ -2,7 +2,7 @@
 
 package com.dodam.admin.controller;
 
-import com.dodam.admin.board.NoticeService;
+import com.dodam.admin.board.AdminNoticeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -17,7 +17,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminDashboardController {
 
-    private final NoticeService noticeService;
+    private final AdminNoticeService noticeService;
 
     @GetMapping({"/admin", "/admin/main"})
     public String dashboard(Model model) throws Exception {

@@ -4,16 +4,16 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import com.dodam.admin.board.NoticeEntity;
-import com.dodam.admin.board.NoticeService;
+import com.dodam.admin.board.AdminNoticeEntity;
+import com.dodam.admin.board.AdminNoticeService;
 
 @Controller
 @RequestMapping("/admin/notices")
 public class AdminNoticeController {
 
-    private final NoticeService noticeService;
+    private final AdminNoticeService noticeService;
 
-    public AdminNoticeController(NoticeService noticeService) {
+    public AdminNoticeController(AdminNoticeService noticeService) {
         this.noticeService = noticeService;
     }
 
@@ -25,12 +25,12 @@ public class AdminNoticeController {
 
     @GetMapping("/add")
     public String addNoticeForm(Model model) {
-        model.addAttribute("notice", new NoticeEntity());
+        model.addAttribute("notice", new AdminNoticeEntity());
         return "admin/notice/form";
     }
 
     @PostMapping("/add")
-    public String addNotice(@ModelAttribute NoticeEntity notice) {
+    public String addNotice(@ModelAttribute AdminNoticeEntity notice) {
         noticeService.save(notice);
         return "redirect:/admin/notices";
     }
@@ -42,7 +42,7 @@ public class AdminNoticeController {
     }
 
     @PostMapping("/edit/{id}")
-    public String editNotice(@PathVariable("id") Long id, @ModelAttribute NoticeEntity notice) {
+    public String editNotice(@PathVariable("id") Long id, @ModelAttribute AdminNoticeEntity notice) {
         notice.setId(id);
         noticeService.save(notice);
         return "redirect:/admin/notices";

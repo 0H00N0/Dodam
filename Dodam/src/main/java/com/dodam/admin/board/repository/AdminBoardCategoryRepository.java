@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface AdminBoardCategoryRepository extends JpaRepository<AdminBoardCategoryEntity, Long> {
+public interface AdminBoardCategoryRepository extends JpaRepository<BoardCategoryEntity, Long> {
 
     /**
      * 카테고리명 중복 체크
