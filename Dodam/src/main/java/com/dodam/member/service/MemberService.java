@@ -107,6 +107,9 @@ public class MemberService {
         entity.setMtel(dto.getMtel());
         entity.setMaddr(dto.getMaddr());
         entity.setMnic(dto.getMnic());
+        entity.setMpost(dto.getMpost());
+        entity.setMname(dto.getMname());
+        entity.setMbirth(dto.getMbirth());
         memberRepository.save(entity);
         
     }

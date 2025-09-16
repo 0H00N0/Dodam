@@ -60,6 +60,14 @@ public class MemberDTO {
         if (e.getLoginmethod() != null) {
             this.joinWay = e.getLoginmethod().getLmtype();
         }
+        if (e.getChildren() != null) {
+            this.children = e.getChildren().stream()
+                .map(child -> ChildDTO.builder()
+                    .chname(child.getChname())
+                    .chbirth(child.getChbirth())
+                    .build())
+                .toList();
+        }
     }
     
     private List<ChildDTO> children;
