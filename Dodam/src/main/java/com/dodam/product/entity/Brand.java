@@ -4,8 +4,6 @@ import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.dodam.admin.dto.AdminBrandDto.Response.ResponseBuilder;
-
 import lombok.*;
 
 /**
