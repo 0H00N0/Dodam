@@ -12,6 +12,6 @@ public class ProductImageEntity {
   @JoinColumn(name="pronum") private ProductEntity product;
 
   @Column(name="proimageorder") private Integer orderNo;
-  @Column(name="url", nullable=false, length=400) private String url;
-  @Column(name="type", length=20) private String type;   // 'THUMB' | 'DETAIL'
+  @Column(name="prourl", nullable=false, length=400) private String url;
+  @Column(name="prodetailimage", length=20) private String type;   // 'THUMB' | 'DETAIL'
 }
