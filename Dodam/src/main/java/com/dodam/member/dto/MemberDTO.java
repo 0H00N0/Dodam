@@ -1,6 +1,8 @@
 package com.dodam.member.dto;
 
 import java.time.LocalDate;
+import java.util.List;
+
 import com.dodam.member.entity.MemberEntity;
 import lombok.*;
 
@@ -59,4 +61,6 @@ public class MemberDTO {
             this.joinWay = e.getLoginmethod().getLmtype();
         }
     }
+    
+    private List<ChildDTO> children;
 }

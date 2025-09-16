@@ -2,6 +2,8 @@ package com.dodam.member.entity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -47,4 +49,7 @@ public class MemberEntity {
     }
     @PreUpdate
     void onUpdate() { this.updatedAt = LocalDateTime.now(); }
+    
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
+    private List<ChildEntity> children;
 }

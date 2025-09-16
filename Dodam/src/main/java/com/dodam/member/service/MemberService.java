@@ -1,10 +1,13 @@
 package com.dodam.member.service;
 
 import com.dodam.member.dto.ChangePwDTO;
+import com.dodam.member.dto.ChildDTO;
 import com.dodam.member.dto.MemberDTO;
+import com.dodam.member.entity.ChildEntity;
 import com.dodam.member.entity.LoginmethodEntity;
 import com.dodam.member.entity.MemberEntity;
 import com.dodam.member.entity.MemtypeEntity;
+import com.dodam.member.repository.ChildRepository;
 import com.dodam.member.repository.LoginmethodRepository;
 import com.dodam.member.repository.MemberRepository;
 import com.dodam.member.repository.MemtypeRepository;
@@ -24,7 +27,8 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final LoginmethodRepository loginmethodRepository;
     private final MemtypeRepository memtypeRepository;
-    private final PasswordEncoder passwordEncoder; // ✅ 추가
+    private final PasswordEncoder passwordEncoder; 
+    private final ChildRepository childRepository;
 
     private LoginmethodEntity getOrCreateLocal() {
         return loginmethodRepository.findByLmtype("LOCAL")
@@ -53,12 +57,28 @@ public class MemberService {
                 .mid(dto.getMid())
                 .mpw(encoded)                  // ✅ 해시 저장
                 .mname(dto.getMname())
+                .mpost(dto.getMpost())
+                .maddr(dto.getMaddr())
+                .memail(dto.getMemail())
+                .mbirth(dto.getMbirth())
+                .mnic(dto.getMnic())
                 .mtel(dto.getMtel())
                 .loginmethod(getOrCreateLocal())
                 .memtype(getOrCreateDefault())
                 .build();
 
         memberRepository.save(e);
+        //자녀정보 저장
+        if (dto.getChildren() != null && !dto.getChildren().isEmpty()) {
+            for (ChildDTO c : dto.getChildren()) {
+                ChildEntity child = ChildEntity.builder()
+                        .chname(c.getChname())
+                        .chbirth(c.getChbirth())
+                        .member(e)
+                        .build();
+                childRepository.save(child);
+            }
+        }
     }
 
     public MemberDTO login(String mid, String rawPw) {
