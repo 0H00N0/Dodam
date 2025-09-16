@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
-@Table(name="PlanPrice")
+@Table(name="PLANPRICE")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PlanPriceEntity {
   @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,4 +36,8 @@ public class PlanPriceEntity {
   @CreationTimestamp
   @Column(nullable=false)
   private LocalDateTime ppriceCreate;
+  
+  @ManyToOne(fetch = FetchType.LAZY, optional = true)
+  @JoinColumn(name = "PTERM_ID")
+  private PlanTermsEntity planTerms;
 }

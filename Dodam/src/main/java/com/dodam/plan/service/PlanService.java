@@ -1,6 +1,7 @@
 package com.dodam.plan.service;
 
 import java.util.ArrayList;
+import java.util.Comparator;   // ✅ 추가
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,13 +40,22 @@ public class PlanService {
         return plans.stream()
             .map(p -> {
                 PlanBenefitEntity b = byPlanId.get(p.getPlanId());
-                List<PlanPriceEntity> prices = ppr.findByPlan_PlanIdAndPpriceActiveTrue(p.getPlanId());
 
-                // ✅ 변수명 오타 수정: benefit -> b
+                // 원본 조회
+                List<PlanPriceEntity> prices = ppr.findByPlan_PlanIdAndPpriceActiveTrue(p.getPlanId());
+                // ✅ months(= planTerms.ptermMonth) 기준 정렬 (null은 마지막)
+                List<PlanPriceEntity> sortedPrices = prices.stream()
+                    .sorted(Comparator.comparing(
+                        e -> e.getPlanTerms() != null ? e.getPlanTerms().getPtermMonth() : null,
+                        Comparator.nullsLast(Integer::compareTo)
+                    ))
+                    .toList();
+
+                // 혜택 노트 파싱
                 BenefitNoteParsed parsed = parseBenefitNote(b != null ? b.getPbNote() : null);
 
-                // ✅ parsed를 DTO로 넘겨서 note/benefits 채우기
-                return PlanDTO.of(p, b, prices, parsed.desc(), parsed.items());
+                // ✅ 정렬된 가격 리스트를 그대로 DTO에 전달
+                return PlanDTO.of(p, b, sortedPrices, parsed.desc(), parsed.items());
             })
             .toList();
     }
@@ -55,12 +65,21 @@ public class PlanService {
             .orElseThrow(() -> new NoSuchElementException("플랜을 찾을 수 없습니다: " + code));
 
         PlanBenefitEntity benefit = pbr.findFirstByPlan(plan).orElse(null);
-        List<PlanPriceEntity> prices = ppr.findByPlan_PlanIdAndPpriceActiveTrue(plan.getPlanId());
 
-        // ✅ 상세에서도 동일하게 파싱 적용
+        // 원본 조회
+        List<PlanPriceEntity> prices = ppr.findByPlan_PlanIdAndPpriceActiveTrue(plan.getPlanId());
+        // ✅ months(= planTerms.ptermMonth) 기준 정렬 (null은 마지막)
+        List<PlanPriceEntity> sortedPrices = prices.stream()
+            .sorted(Comparator.comparing(
+                e -> e.getPlanTerms() != null ? e.getPlanTerms().getPtermMonth() : null,
+                Comparator.nullsLast(Integer::compareTo)
+            ))
+            .toList();
+
+        // 상세에서도 동일하게 파싱 적용
         BenefitNoteParsed parsed = parseBenefitNote(benefit != null ? benefit.getPbNote() : null);
 
-        return PlanDTO.of(plan, benefit, prices, parsed.desc(), parsed.items());
+        return PlanDTO.of(plan, benefit, sortedPrices, parsed.desc(), parsed.items());
     }
 
     // ───────────────────────────────────────────────────

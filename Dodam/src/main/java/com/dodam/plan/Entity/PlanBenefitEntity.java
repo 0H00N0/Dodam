@@ -7,7 +7,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name="PlanBenefit")
+@Table(name="PLANBENEFIT")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PlanBenefitEntity {
   @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -46,7 +46,7 @@ public class PlanPaymentOrchestratorService {
         log.info("[confirmInvoice] invId={}, piUid={}, amount={}, mid={}",
                 inv.getPiId(), inv.getPiUid(), inv.getPiAmount(), payment.getMid());
 
-        var res = pgSvc.payWithBillingKey(
+        var res = pgSvc.payByBillingKey(
                 inv.getPiUid(),                   // 내부 uid
                 payment.getPayCustomer(),         // (== mid)
                 payment.getPayKey(),

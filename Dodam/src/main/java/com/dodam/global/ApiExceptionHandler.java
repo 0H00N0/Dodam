@@ -7,8 +7,11 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
@@ -38,8 +41,10 @@ public class ApiExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<?> handleAny(Exception e) {
-    // 개발 중에는 500의 원인을 프론트에서 볼 수 있게 간단 코드도 함께
-    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .body(Map.of("message", "INTERNAL_SERVER_ERROR"));
+      log.error("[UNHANDLED] {}", e.toString(), e); // 스택 전체 출력
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+              .body(Map.of("message", "INTERNAL_SERVER_ERROR", "hint", e.getClass().getSimpleName()));
   }
+  
+  
 }
