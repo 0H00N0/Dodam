@@ -1,55 +1,48 @@
-// ProductController.java
 package com.dodam.product.controller;
 
 import com.dodam.product.dto.ProductDTO;
 import com.dodam.product.service.ProductService;
-import jakarta.validation.constraints.Positive;        // ⬅️ 추가
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.*;
-import org.springframework.validation.annotation.Validated; // ⬅️ 타입 레벨 사용
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
 @RestController
-@RequestMapping("/api/products") // 
+@RequestMapping("/api/products")
 @RequiredArgsConstructor
-@Validated // ⬅️ 경로/쿼리 파라미터 검증 활성화
 public class ProductController {
-  private final ProductService productService;
 
-  @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<?> create(@Validated(ProductDTO.Create.class) @RequestBody ProductDTO dto) {
-    Long id = productService.create(dto);
-    return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", id));
-  }
+    private final ProductService productService;
 
-  @PutMapping(value="/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<?> update(@PathVariable @Positive Long id,  // ⬅️ 경로 변수 검증
-                                  @Validated(ProductDTO.Update.class) @RequestBody ProductDTO dto) {
-    dto.setId(id); // 검증 후 서비스로 전달
-    productService.update(dto);
-    return ResponseEntity.ok(Map.of("message","ok"));
-  }
+    @GetMapping
+    public Page<ProductDTO> list(
+        @RequestParam(required = false) String q,
+        @RequestParam(required = false) Long catenum,
+        @RequestParam(required = false) Long prosnum,
+        @RequestParam(required = false) String prograde, // S/A/B/C
+        @PageableDefault(size = 20, sort = "pronum", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return productService.searchByColumns(q, catenum, prosnum, prograde, pageable);
+    }
 
-  @GetMapping
-  public Page<ProductDTO> list(
-      @RequestParam(required = false) String q,
-      @RequestParam(required = false) Long categoryId,
-      @RequestParam(required = false) String grade,
-      @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-    return productService.list(q, categoryId, grade, pageable);
-  }
+    @GetMapping("/{pronum}")
+    public ProductDTO get(@PathVariable Long pronum) {
+        return productService.get(pronum);
+    }
 
-  @GetMapping("/{id}")
-  public ProductDTO detail(@PathVariable @Positive Long id) { // ⬅️ 경로 변수 검증
-    return productService.get(id, true);
-  }
+    @PostMapping
+    public ProductDTO create(@RequestBody ProductDTO dto) {
+        return productService.create(dto);
+    }
 
-  @DeleteMapping("/{id}")
-  public void delete(@PathVariable @Positive Long id) { // ⬅️ 경로 변수 검증
-    productService.delete(id);
-  }
+    @PutMapping("/{pronum}")
+    public ProductDTO update(@PathVariable Long pronum, @RequestBody ProductDTO dto) {
+        dto.setPronum(pronum);
+        return productService.update(dto);
+    }
+
+    @DeleteMapping("/{pronum}")
+    public void delete(@PathVariable Long pronum) {
+        productService.delete(pronum);
+    }
 }
