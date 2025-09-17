@@ -1,4 +1,4 @@
-package com.dodam.rental.entity;
+package com.dodam.rent.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -8,11 +8,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name="rental")
+@Table(name="rent")
 @Getter
 @Setter
 @NoArgsConstructor
 @Builder
-public class RentalEntity {
+public class RentEntity {
 	
 }
