@@ -13,20 +13,14 @@ import com.dodam.member.entity.*;
 @Repository
 public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
 
-    Optional<MemberEntity> findByMid(String mid);
-    boolean existsByMid(String mid);
-    boolean existsByMemail(String memail);
+	// 이름+이메일로 찾기
+	Optional<MemberEntity> findByMnameAndMemail(String mname, String memail);
+	
+	// 이메일로 비밀번호 찾기
+	Optional<MemberEntity> findByMidAndMnameAndMemail(String mid, String mname, String memail);
 
-    // 관리자만 조회 (ADMIN, SUPERADMIN, STAFF)
-    @Query("""
-           SELECT m
-           FROM MemberEntity m
-           JOIN m.memtype t
-           WHERE m.mid = :mid
-             AND t.mtname IN ('ADMIN','SUPERADMIN','STAFF')
-           """)
-    Optional<MemberEntity> findAdminByMid(@Param("mid") String mid);
+	//전화번호로 비밀번호 찾기
+	Optional<MemberEntity> findByMidAndMnameAndMtel(String mid, String mname, String mtel);
 
-    Optional<MemberEntity> findByMnameAndMtel(String mname, String mtel);
-    Optional<MemberEntity> findByMnameAndMemail(String mname, String memail);
+
 }

@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.dodam.plan.Entity.PlanAttemptEntity;
 
 public interface PlanAttemptRepository extends JpaRepository<PlanAttemptEntity, Long> {
-	  List<PlanAttemptEntity> findByInvoice_PiIdOrderByPattAtDesc(Long piId);
-	}
+	List<PlanAttemptEntity> findByInvoice_PiIdOrderByPattIdDesc(Long piId);
+}

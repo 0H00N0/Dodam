@@ -1,288 +1,176 @@
+// src/main/java/com/dodam/plan/service/PlanPaymentGatewayServiceImpl.java
 package com.dodam.plan.service;
 
-import com.dodam.plan.config.PlanPortoneProperties;
 import com.dodam.plan.dto.PlanCardMeta;
+import com.dodam.plan.dto.PlanLookupResult;
+import com.dodam.plan.dto.PlanPayResult;
+import com.dodam.plan.dto.PlanPaymentLookupResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpHeaders;
+import org.springframework.beans.factory.annotation.Qualifier;          // ✅ 추가
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
 
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.time.Duration;
+import java.util.Map;
 
-@Service
-@RequiredArgsConstructor
 @Slf4j
+@Service
 public class PlanPaymentGatewayServiceImpl implements PlanPaymentGatewayService {
 
-    private final PlanPortoneProperties portone;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final WebClient portone;   // PortOne 전용 WebClient
+    private final ObjectMapper mapper;
 
-    private WebClient client() {
-        String base = (portone.getBaseUrl() == null || portone.getBaseUrl().isBlank())
-                ? "https://api.portone.io" : portone.getBaseUrl();
-        return WebClient.builder()
-                .baseUrl(base)
-                .defaultHeader(HttpHeaders.AUTHORIZATION, "PortOne " + portone.getSecret())
-                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .build();
+    // ✅ 명시 생성자 + Qualifier 로 주입 충돌 해결
+    public PlanPaymentGatewayServiceImpl(
+            @Qualifier("portoneWebClient") WebClient portone,  // <-- 여기 중요
+            ObjectMapper mapper
+    ) {
+        this.portone = portone;
+        this.mapper = mapper;
     }
 
-    // ========================
-    // Payments: approve by billing key
-    // ========================
     @Override
-    public PayResult payByBillingKey(String billingKey, long amount, String customerId) {
+    public PlanPayResult payByBillingKey(String paymentId, String billingKey, long amount, String customerId) {
         try {
-            String orderId = makeOrderId();
-            Map<String, Object> body = new HashMap<>();
-            body.put("orderId", orderId);
-            body.put("amount", Map.of("total", amount, "currency", "KRW"));
-            body.put("paymentMethod", Map.of("type", "CARD", "billingKey", billingKey));
-            body.put("customer", Map.of("id", customerId));
-            if (notBlank(portone.getStoreId())) body.put("storeId", portone.getStoreId());
+            Map<String, Object> payload = Map.of(
+                    "paymentId", paymentId,
+                    "billingKey", billingKey,
+                    "amount", amount,
+                    "customerId", customerId
+            );
 
-            String confirmPath = notBlank(portone.getConfirmPath()) ? portone.getConfirmPath() : "/payments/confirm";
+            Mono<ClientResponse> call = portone.post()
+                    .uri("/v2/payments/billing-keys/confirm")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .bodyValue(payload)
+                    .exchangeToMono(Mono::just)
+                    .timeout(Duration.ofSeconds(15));
 
-            String raw = client().post().uri(confirmPath)
-                    .bodyValue(body)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
+            ClientResponse resp = call.block();
+            if (resp == null) {
+                return fail(paymentId, "NO_RESPONSE", null, "{}");
+            }
 
-            return buildPayResultFromRaw(raw);
+            HttpStatusCode http = resp.statusCode();
+            String body = resp.bodyToMono(String.class).defaultIfEmpty("").block();
 
-        } catch (WebClientResponseException ex) {
-            return fail("HTTP_" + ex.getRawStatusCode(), ex.getResponseBodyAsString());
-        } catch (Exception ex) {
-            log.error("payByBillingKey error", ex);
-            return fail(ex.getClass().getSimpleName() + ": " + ex.getMessage(), "{}");
+            if (!StringUtils.hasText(body)) {
+                log.warn("[payByBillingKey] empty body. status={}", http.value());
+                return http.is2xxSuccessful()
+                        ? accepted(paymentId, body)
+                        : fail(paymentId, "EMPTY_RESPONSE", null, "{}");
+            }
+
+            JsonNode json;
+            try {
+                json = mapper.readTree(body);
+            } catch (Exception parseEx) {
+                log.error("[payByBillingKey] parse error: {}", parseEx.toString());
+                return fail(paymentId, "INVALID_JSON", null, body);
+            }
+
+            String id = json.path("id").asText(paymentId);
+            String status = json.path("status").asText("").toUpperCase();
+            String receiptUrl = json.path("receiptUrl").asText(null);
+            String failReason = json.path("message").asText(null);
+
+            if (http.value() == 202 || "PENDING".equals(status) || "PROCESSING".equals(status)) {
+                return accepted(id, body);
+            }
+            if ("PAID".equals(status) || "SUCCEEDED".equals(status) || "SUCCESS".equals(status)) {
+                return success(id, receiptUrl, body);
+            }
+            if ("FAILED".equals(status) || "CANCELED".equals(status) || http.is4xxClientError() || http.is5xxServerError()) {
+                String reason = StringUtils.hasText(failReason) ? failReason : ("HTTP_" + http.value());
+                return fail(id, reason, receiptUrl, body);
+            }
+            return fail(id, "UNKNOWN_STATUS:" + status, receiptUrl, body);
+
+        } catch (Exception e) {
+            log.error("[payByBillingKey] error: {}", e.toString(), e);
+            return fail(paymentId, e.getClass().getSimpleName(), null, "{}");
         }
     }
 
-    // ========================
-    // (Compat) confirm by paymentId + amount
-    // ========================
-    @Override
-    public PayResult confirmPaymentRaw(String paymentId, long amount) {
-        try {
-            // 일부 레거시 플로우는 /payments/{paymentId}/confirm 를 사용하기도 하지만,
-            // v2 공통 confirm를 orderId=paymentId 로 사용하는 형태로 구현 (환경에 따라 properties로 분기 가능)
-            Map<String, Object> body = new HashMap<>();
-            body.put("orderId", paymentId);
-            body.put("amount", Map.of("total", amount, "currency", "KRW"));
-            if (notBlank(portone.getStoreId())) body.put("storeId", portone.getStoreId());
-
-            String confirmPath = notBlank(portone.getConfirmPath()) ? portone.getConfirmPath() : "/payments/confirm";
-
-            String raw = client().post().uri(confirmPath)
-                    .bodyValue(body)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-
-            return buildPayResultFromRaw(raw);
-
-        } catch (WebClientResponseException ex) {
-            return fail("HTTP_" + ex.getRawStatusCode(), ex.getResponseBodyAsString());
-        } catch (Exception ex) {
-            log.error("confirmPaymentRaw error", ex);
-            return fail(ex.getClass().getSimpleName() + ": " + ex.getMessage(), "{}");
-        }
+    private PlanPayResult success(String id, String receiptUrl, String raw) {
+        return new PlanPayResult(true, id, receiptUrl, null, ensureRaw(raw));
     }
-
-    private PayResult buildPayResultFromRaw(String raw) throws Exception {
-        if (raw == null) return fail("EMPTY_RESPONSE", "{}");
-        JsonNode root = mapper.readTree(raw);
-        String pid = pickText(root, "id", "paymentId");
-        String status = pickText(root, "status");
-        String receipt = pickText(root, "receipt", "url");
-
-        boolean ok = "PAID".equalsIgnoreCase(status) ||
-                     "SUCCEEDED".equalsIgnoreCase(status) ||
-                     "SUCCESS".equalsIgnoreCase(status);
-
-        final String fPid = pid, fReceipt = receipt, fStatus = status, fRaw = raw;
-        return new PayResult() {
-            @Override public boolean success() { return ok; }
-            @Override public String paymentId() { return fPid; }
-            @Override public String receiptUrl() { return fReceipt; }
-            @Override public String failReason() { return ok ? null : statusOrReason(root, fStatus); }
-            @Override public String rawJson() { return fRaw; }
-        };
+    private PlanPayResult fail(String id, String reason, String receiptUrl, String raw) {
+        return new PlanPayResult(false, id, receiptUrl, reason, ensureRaw(raw));
     }
-
-    // ========================
-    // (Compat) Lookup
-    // ========================
-    @Override
-    public PgLookupResult safeLookup(String txId, String paymentId) {
-        try {
-            String getPath = Optional.ofNullable(portone.getPaymentGetPrefix()).orElse("/payments/") + paymentId;
-
-            String raw = client().get().uri(getPath)
-                    .retrieve().bodyToMono(String.class).block();
-
-            if (raw == null) raw = "{}";
-            JsonNode root = mapper.readTree(raw);
-
-            String pgName   = coalesce(
-                    pickText(root, "pgProvider"),
-                    pickText(root, "pg"),
-                    portone.getPgName()
-            );
-            // 카드 정보 다양한 위치 대응
-            JsonNode card = firstNonNull(
-                    pickNode(root, "method", "card"),
-                    pickNode(root, "paymentMethod", "card"),
-                    pickNode(root, "card")
-            );
-            String brand = coalesce(
-                    pickText(card, "brand"), pickText(card, "issuer", "name"),
-                    pickText(root, "card", "issuer"), pickText(root, "card", "brand")
-            );
-            String bin   = coalesce(
-                    pickText(card, "number", "bin"), pickText(card, "bin"),
-                    pickText(root, "card", "bin")
-            );
-            String last4 = coalesce(
-                    pickText(card, "number", "last4"), pickText(card, "last4"),
-                    pickText(root, "card", "last4")
-            );
-
-            String bKey = coalesce(
-                    pickText(root, "paymentMethod", "billingKey"),
-                    pickText(root, "billingKey"),
-                    pickText(card, "billingKey")
-            );
-
-            final String fRaw = raw;
-            final String fPg  = safe(pgName);
-            final String fBr  = safe(brand);
-            final String fBin = safe(bin);
-            final String fL4  = safe(last4);
-            final String fKey = safe(bKey);
-            final String fPid = safe(pickText(root, "id", "paymentId", "uid", "orderId"));
-
-            return new PgLookupResult() {
-                @Override public String txId() { return txId; }
-                @Override public String paymentId() { return fPid; }
-                @Override public String pg() { return fPg; }
-                @Override public String brand() { return fBr; }
-                @Override public String bin() { return fBin; }
-                @Override public String last4() { return fL4; }
-                @Override public String billingKey() { return fKey; }
-                @Override public String rawJson() { return fRaw; }
-            };
-
-        } catch (WebClientResponseException ex) {
-            String body = ex.getResponseBodyAsString();
-            log.warn("safeLookup http error {} {}", ex.getRawStatusCode(), body);
-            return lookupFail(txId, paymentId, body);
-        } catch (Exception ex) {
-            log.warn("safeLookup error {}", ex.toString());
-            return lookupFail(txId, paymentId, "{}");
-        }
+    private PlanPayResult accepted(String id, String raw) {
+        return new PlanPayResult(false, id, null, "ACCEPTED", ensureRaw(raw));
     }
+    private String ensureRaw(String raw) { return StringUtils.hasText(raw) ? raw : "{}"; }
 
-    private PgLookupResult lookupFail(String txId, String paymentId, String raw) {
-        final String fRaw = raw == null ? "{}" : raw;
-        return new PgLookupResult() {
-            @Override public String txId() { return txId; }
-            @Override public String paymentId() { return paymentId; }
-            @Override public String pg() { return safe(portone.getPgName()); }
-            @Override public String brand() { return ""; }
-            @Override public String bin() { return ""; }
-            @Override public String last4() { return ""; }
-            @Override public String billingKey() { return ""; }
-            @Override public String rawJson() { return fRaw; }
-        };
-    }
-
-    // ========================
-    // Card Meta Extraction
-    // ========================
     @Override
     public PlanCardMeta extractCardMeta(String rawJson) {
+        if (!StringUtils.hasText(rawJson)) return new PlanCardMeta(null, null, null, null);
         try {
-            if (rawJson == null || rawJson.isBlank()) return null;
-            JsonNode root = mapper.readTree(rawJson);
-            JsonNode card = firstNonNull(
-                    pickNode(root, "method", "card"),
-                    pickNode(root, "paymentMethod", "card"),
-                    pickNode(root, "card")
+            JsonNode r = mapper.readTree(rawJson);
+            return new PlanCardMeta(
+                    r.path("card").path("bin").asText(null),
+                    r.path("card").path("brand").asText(null),
+                    r.path("card").path("last4").asText(null),
+                    r.path("pg").asText(null)
             );
-            if (card == null) return null;
-
-            String last4 = coalesce(pickText(card, "number", "last4"), pickText(card, "last4"));
-            String bin   = coalesce(pickText(card, "number", "bin"),   pickText(card, "bin"));
-            String brand = coalesce(pickText(card, "brand"), pickText(card, "issuer", "name"));
-            return new PlanCardMeta(safe(last4), safe(bin), safe(brand), safe(portone.getPgName()));
         } catch (Exception e) {
-            log.warn("extractCardMeta parse fail: {}", e.toString());
-            return null;
+            log.warn("[extractCardMeta] parse fail: {}", e.toString());
+            return new PlanCardMeta(null, null, null, null);
         }
     }
 
-    // ========================
-    // helpers
-    // ========================
-    private String makeOrderId() {
-        return "od_" + OffsetDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) +
-               "_" + UUID.randomUUID().toString().substring(0,8);
-    }
-    private static boolean notBlank(String s) { return s != null && !s.isBlank(); }
-    private static String safe(String s) { return s == null ? "" : s; }
-    private String coalesce(String... vals) { for (String v: vals) if (notBlank(v)) return v; return null; }
+    @Override
+    public PlanLookupResult safeLookup(String paymentId) {
+        try {
+            String body = portone.get()
+                    .uri("/v2/payments/{id}", paymentId)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .timeout(Duration.ofSeconds(10))
+                    .onErrorReturn("")
+                    .block();
 
-    private String pickText(JsonNode node, String... keys) {
-        JsonNode cur = node;
-        for (String k: keys) {
-            if (cur == null) return null;
-            cur = cur.get(k);
+            if (!StringUtils.hasText(body)) {
+                return new PlanLookupResult(paymentId, "UNKNOWN", "{}");
+            }
+            JsonNode j = mapper.readTree(body);
+            String status = j.path("status").asText("UNKNOWN");
+            return new PlanLookupResult(paymentId, status, body);
+        } catch (Exception e) {
+            return new PlanLookupResult(paymentId, "ERROR", e.getMessage());
         }
-        return (cur != null && !cur.isNull()) ? cur.asText() : null;
     }
 
-    private JsonNode pickNode(JsonNode node, String... keys) {
-        JsonNode cur = node;
-        for (String k: keys) {
-            if (cur == null) return null;
-            cur = cur.get(k);
+    @Override
+    public PlanPaymentLookupResult lookupPayment(String paymentId) {
+        try {
+            PlanLookupResult r = safeLookup(paymentId);
+            String st = (r.status() == null ? "UNKNOWN" : r.status().toUpperCase());
+
+            return new PlanPaymentLookupResult(
+                    r.id(),
+                    st,
+                    r.rawJson(),
+                    HttpStatus.OK
+            );
+        } catch (Exception e) {
+            return new PlanPaymentLookupResult(
+                    paymentId,
+                    "ERROR",
+                    e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
-        return cur;
-    }
-
-    private JsonNode firstNonNull(JsonNode... nodes) {
-        for (JsonNode n: nodes) if (n != null && !n.isNull()) return n;
-        return null;
-    }
-
-    private String statusOrReason(JsonNode root, String statusFallback) {
-        String s = coalesce(
-                pickText(root, "status"),
-                pickText(root, "failure", "message"),
-                pickText(root, "message"),
-                statusFallback
-        );
-        return s;
-    }
-
-    private PayResult fail(String reason, String raw) {
-        final String fRaw = (raw == null) ? "{}" : raw;
-        final String fReason = (reason == null) ? "UNKNOWN" : reason;
-        return new PayResult() {
-            @Override public boolean success() { return false; }
-            @Override public String paymentId() { return null; }
-            @Override public String receiptUrl() { return null; }
-            @Override public String failReason() { return fReason; }
-            @Override public String rawJson() { return fRaw; }
-        };
     }
 }

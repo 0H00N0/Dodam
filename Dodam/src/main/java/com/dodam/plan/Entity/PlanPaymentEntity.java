@@ -3,41 +3,55 @@ package com.dodam.plan.Entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.time.LocalDateTime;
 
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
 @Entity
-@Table(name = "PlanPayment")
-@Getter @Setter @Builder
-@NoArgsConstructor @AllArgsConstructor
+@Table(
+    name = "PLANPAYMENT",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "UK_PLANPAYMENT_MID_KEY", columnNames = {"mid", "payKey"})
+        // 만약 payKey 단독 유니크라면 위 줄 대신 @Column(unique=true) on payKey 로 사용하세요.
+    }
+)
+@SequenceGenerator(
+    name = "PLANPAYMENT_SEQ_GEN",
+    sequenceName = "PLANPAYMENT_SEQ",
+    allocationSize = 1
+)
 public class PlanPaymentEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long payId;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "payId")
+	private Long payId;
 
-    // 세션의 회원 아이디
-    @Column(nullable = false, length = 50)
+    @Column(name = "mid", nullable = false, length = 50)
     private String mid;
 
-    // 고객아이디(PortOne customerId 등) – 정책에 맞춰 생성/저장
-    @Column(nullable = false, length = 100, unique = true)
-    private String payCustomer;
+    @Column(name = "payKey", nullable = false, length = 200)
+    private String payKey;           // = billingKey
 
-    // 빌링키
-    @Column(nullable = false, length = 100, unique = true)
-    private String payKey;
+    @Column(name = "payCustomer", length = 200)
+    private String payCustomer;      // PortOne customerId
 
-    @Column(length = 30)
-    private String payPg;     // 예: tosspayments, nice, kcp 등
+    @Column(name = "payBrand", length = 50)
+    private String payBrand;         // 카드 브랜드
 
-    @Column(length = 40)
-    private String payBrand;  // 예: VISA/Master/BC 등
+    @Column(name = "payBin", length = 8)
+    private String payBin;           // BIN
 
-    @Column(length = 12)
-    private String payBin;
-
-    @Column(length = 8)
+    @Column(name = "payLast4", length = 4)
     private String payLast4;
 
+    @Column(name = "payPg", length = 50)
+    private String payPg;            // PG사 (tosspayments 등)
+
+    @Column(name = "payCreatedAt", nullable = false)
+    private LocalDateTime payCreatedAt;
+
     @Lob
-    private String payRaw;
+    @Column(name = "payRaw")
+    private String payRaw;           // 원문 JSON (안전 보관용)
 }
