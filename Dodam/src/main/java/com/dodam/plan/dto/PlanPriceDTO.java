@@ -23,14 +23,14 @@ public class PlanPriceDTO {
 	private String currency;
 	private Boolean active;
 	
-	public static PlanPriceDTO of(PlanPriceEntity entity) {
-		return PlanPriceDTO.builder()
-				.ppriceId(entity.getPpriceId())
-				.termMonth(entity.getPterm().getPtermMonth())
-				.bilMode(entity.getPpriceBilMode())
-				.amount(entity.getPpriceAmount())
-				.currency(entity.getPpriceCurr())
-				.active(entity.getPpriceActive())
-				.build();
+	public static PlanPriceDTO from(PlanPriceEntity e) {
+	    return PlanPriceDTO.builder()
+	        .ppriceId(e.getPpriceId())
+	        .amount(e.getPpriceAmount())
+	        .currency(e.getPpriceCurr())
+	        .bilMode(e.getPpriceBilMode())
+	        .termMonth(e.getPterm() != null ? e.getPterm().getPtermMonth() : null) // ✅ 단수형
+	        .build();
 	}
+
 }

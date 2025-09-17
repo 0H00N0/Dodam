@@ -1,29 +1,47 @@
+// src/main/java/com/dodam/plan/Entity/PlanAttemptEntity.java
 package com.dodam.plan.Entity;
 
-import com.dodam.plan.enums.PlanEnums.PattResult;
-import jakarta.persistence.*;
-import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
+import com.dodam.plan.enums.PlanEnums.PattResult;
+
+import jakarta.persistence.*;
+import lombok.*;
+
 @Entity
-@Table(name="planAttempt", indexes=@Index(name="idx_planattempt_piid", columnList="piId"))
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Table(name = "PlanAttempt")
+@Getter @Setter @Builder
+@NoArgsConstructor @AllArgsConstructor
 public class PlanAttemptEntity {
-  @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long pattId;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name="piId", nullable=false, foreignKey=@ForeignKey(name="fk_patt_pi"))
-  private PlanInvoiceEntity invoice;
+@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+private Long pattId;
 
-  @Column(nullable=false) private LocalDateTime pattAt = LocalDateTime.now();
+@ManyToOne(optional = false, fetch = FetchType.LAZY)
+@JoinColumn(name = "piId", nullable = false)
+private PlanInvoiceEntity invoice;
 
-  @Enumerated(EnumType.STRING) @Column(nullable=false, length=20)
-  private PattResult pattResult;
+@Enumerated(EnumType.STRING)
+@Column(name = "pattResult", nullable = false, length = 16)
+private PattResult pattResult; // SUCCESS / FAIL
 
-  @Column(length=500) private String pattFail;
-  @Column(length=200) private String pattUid;
-  @Column(length=500) private String pattUrl;
+// ✅ 아래 4개는 널 허용 권장(선택)
+@Column(name = "pattFail", nullable = true, length = 4000)
+private String pattFail;
 
-  @Lob private String pattResponse; // 원문 JSON
+@Column(name = "pattUid", nullable = true, length = 128)
+private String pattUid;
+
+@Column(name = "pattUrl", nullable = true, length = 1024)
+private String pattUrl;
+
+@Lob
+@Column(name = "pattResponse", nullable = true)
+private String pattResponse;
+
+@CreationTimestamp
+@Column(name = "pattAt", updatable = false)  // nullable은 굳이 강제하지 않음(마이그레이션 안전)
+private LocalDateTime pattAt;
 }
+

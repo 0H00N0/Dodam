@@ -11,4 +11,5 @@ public interface PlansRepository extends JpaRepository<PlansEntity, Long>{
 	Optional<PlansEntity> findByPlanCode(String planCode);
 	List<PlansEntity> findByPlanActiveTrue();
 	Optional<PlansEntity> findByPlanCodeIgnoreCase(String planCode);
+	Optional<PlansEntity> findByPlanCodeEqualsIgnoreCase(String planCode);
 }

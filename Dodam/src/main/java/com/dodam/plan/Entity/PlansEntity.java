@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
-@Table(name="Plans")
+@Table(name="PLANS")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PlansEntity {
   @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,46 +1,34 @@
+// src/main/java/com/dodam/plan/service/PlanPaymentGatewayService.java
 package com.dodam.plan.service;
 
 import com.dodam.plan.dto.PlanCardMeta;
+import com.dodam.plan.dto.PlanLookupResult;
+import com.dodam.plan.dto.PlanPayResult;
+import com.dodam.plan.dto.PlanPaymentLookupResult;
 
 public interface PlanPaymentGatewayService {
 
-	/** v2: 빌링키로 즉시 승인 */
-    PayResult payByBillingKey(String billingKey, long amount, String customerId);
+    /** 빌링키 결제 */
+    PlanPayResult payByBillingKey(String paymentId, String billingKey, long amount, String customerId);
 
-    /** (호환) 예전 호출 시그니처: uid는 내부 결제 식별자 용도로만 쓰였으므로 무시하고 위 메서드로 위임 */
-    default PayResult payWithBillingKey(String uid, String customerId, String billingKey, long amount) {
-        return payByBillingKey(billingKey, amount, customerId);
+    /** 레거시(3인자) 호환 */
+    default PlanPayResult payByBillingKey(String billingKey, long amount, String customerId) {
+        String pid = "pay-" + System.currentTimeMillis();
+        return payByBillingKey(pid, billingKey, amount, customerId);
     }
 
-    /** (호환) ‘결제아이디 + 금액’으로 확인 호출하던 레거시 코드 지원 */
-    PayResult confirmPaymentRaw(String paymentId, long amount);
-
-    /** (호환) PG 조회(브랜드, BIN, last4, billingKey 등) */
-    PgLookupResult safeLookup(String txId, String paymentId);
-
-    /** 결제 원문에서 카드 메타 추출 */
+    /** 결제전문(raw JSON)에서 카드 메타 추출 */
     PlanCardMeta extractCardMeta(String rawJson);
 
-    // ======= Result Types =======
-    interface PayResult {
-        boolean success();
-        String paymentId();
-        String receiptUrl();
-        String failReason();
-        String rawJson();
+    /** 결제 상태 안전 조회 (예외 삼키고 UNKNOWN) */
+    PlanLookupResult safeLookup(String paymentId);
 
-        /** (호환) 과거 코드에서 uid()를 쓰므로 paymentId()와 동일하게 제공 */
-        default String uid() { return paymentId(); }
-    }
+    /** 결제 상태 조회 */
+    PlanPaymentLookupResult lookupPayment(String paymentId);
 
-    interface PgLookupResult {
-        String txId();        // 내부 txId (넘겨받은 값 그대로 echo)
-        String paymentId();   // PG 결제 id
-        String pg();          // 예: TOSSPAYMENTS, KCP ...
-        String brand();       // 예: VISA, MASTER, 하나카드 등
-        String bin();         // 6~8자리
-        String last4();       // 4자리
-        String billingKey();  // 저장된 빌링키
-        String rawJson();     // 원문
+    /** 인보이스 결제 시도 (동기/비동기) — 미사용 시 기본 구현 */
+    default PlanPaymentLookupResult confirmInvoice(Long invoiceId, String mid) {
+        return new PlanPaymentLookupResult(null, "FAILED", "NOT_IMPLEMENTED",
+                org.springframework.http.HttpStatus.OK);
     }
 }
