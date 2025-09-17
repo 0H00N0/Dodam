@@ -6,6 +6,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,6 +46,13 @@ public class ApiExceptionHandler {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
               .body(Map.of("message", "INTERNAL_SERVER_ERROR", "hint", e.getClass().getSimpleName()));
   }
+  
+  @ExceptionHandler(NoResourceFoundException.class)
+	public ResponseEntity<?> handleNoResource(NoResourceFoundException e) {
+	    // 더 이상 500로 보이지 않게 404로 통일
+	    return ResponseEntity.status(404).body(
+	            Map.of("error", "NOT_FOUND", "path", e.getResourcePath()));
+	}
   
   
 }

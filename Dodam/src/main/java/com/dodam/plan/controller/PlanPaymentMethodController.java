@@ -1,21 +1,22 @@
 package com.dodam.plan.controller;
 
-import com.dodam.plan.dto.PlanPaymentRegisterReq;
 import com.dodam.plan.dto.PlanCardMeta;
-import com.dodam.plan.Entity.PlanPaymentEntity;
+import com.dodam.plan.dto.PlanPaymentRegisterReq;
+import com.dodam.plan.Entity.PlanPaymentEntity; // ← 네가 쓰는 대문자 Entity 패키지에 맞춤
 import com.dodam.plan.repository.PlanPaymentRepository;
-import com.dodam.plan.service.PlanPaymentProfileService;
 import com.dodam.plan.service.PlanPaymentGatewayService;
-
+import com.dodam.plan.service.PlanPaymentProfileService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.*;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Slf4j
@@ -28,160 +29,132 @@ public class PlanPaymentMethodController {
     private final PlanPaymentProfileService profileSvc;
     private final PlanPaymentGatewayService pgSvc;
 
-    /** 카드 목록 */
-    @GetMapping({"/list", ""})
+    // ===== 1) 카드 목록 (프런트는 배열 기대) =====
+    @GetMapping("/list")
     public ResponseEntity<?> list(HttpSession session) {
-        final String mid = (String) session.getAttribute("sid");
+        String mid = (String) session.getAttribute("sid");
         if (!StringUtils.hasText(mid)) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("error", "LOGIN_REQUIRED");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error","LOGIN_REQUIRED"));
         }
-        return ResponseEntity.ok(paymentRepo.findByMid(mid));
+        var list = paymentRepo.findAllByMid(mid);
+        var arr = list.stream().map(PlanPaymentMethodController::toMap).toList();
+        return ResponseEntity.ok(arr);
     }
 
-    /** 카드 등록(멱등) */
+    // ===== 2) 카드 등록 (빌링키 저장) =====
+    // @Transactional 제거: 리포지토리 레벨에서 트랜잭션 수행 (UnexpectedRollback 회피)
     @PostMapping(value="/register", consumes=MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(noRollbackFor = DataIntegrityViolationException.class)
     public ResponseEntity<?> register(@RequestBody PlanPaymentRegisterReq req, HttpSession session) {
-        final String mid = (String) session.getAttribute("sid");
-        final String key = req.getBillingKey() == null ? null : req.getBillingKey().trim();
-
-        log.info("[billing-keys/register] sid={}, billingKey={}", mid, key);
-
+        String mid = (String) session.getAttribute("sid");
         if (!StringUtils.hasText(mid)) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("error", "LOGIN_REQUIRED");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
-        }
-        if (!StringUtils.hasText(key)) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("error", "MISSING_BILLING_KEY");
-            return ResponseEntity.badRequest().body(body);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error","LOGIN_REQUIRED"));
         }
 
-        // 0) 메타 추출 (rawJson 우선)
-        PlanCardMeta meta = null;
-        try { meta = pgSvc.extractCardMeta(req.getRawJson()); } catch (Exception ignore) {}
-        final String pg    = firstNonBlank(meta != null ? meta.getPg()    : null, safe(req.getPg()));
-        final String brand = firstNonBlank(meta != null ? meta.getBrand() : null, safe(req.getBrand()));
-        final String bin   = firstNonBlank(meta != null ? meta.getBin()   : null, safe(req.getBin()));
-        final String last4 = firstNonBlank(meta != null ? meta.getLast4() : null, safe(req.getLast4()));
-        final String raw   = req.getRawJson();
+        String billingKey = StringUtils.trimAllWhitespace(req.getBillingKey());
+        if (!StringUtils.hasText(billingKey)) {
+            return ResponseEntity.badRequest().body(Map.of("error","MISSING_BILLING_KEY"));
+        }
 
-        // 1) 선조회 멱등
-        var existingOpt = paymentRepo.findByPayKey(key);
+        // 1) 선검증: 동일 payKey 존재 여부
+        var existingOpt = paymentRepo.findByPayKey(billingKey);
         if (existingOpt.isPresent()) {
             var existing = existingOpt.get();
-
             if (!Objects.equals(existing.getMid(), mid)) {
-                Map<String, Object> body = new HashMap<>();
-                body.put("error", "OWNED_BY_ANOTHER_USER");
-                body.put("billingKey", key);
-                return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+                // 타인 소유
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error","OWNED_BY_ANOTHER_USER"));
             }
-
-            boolean changed = false;
-            if (!StringUtils.hasText(existing.getPayPg())    && StringUtils.hasText(pg))    { existing.setPayPg(pg); changed = true; }
-            if (!StringUtils.hasText(existing.getPayBrand()) && StringUtils.hasText(brand)) { existing.setPayBrand(brand); changed = true; }
-            if (!StringUtils.hasText(existing.getPayBin())   && StringUtils.hasText(bin))   { existing.setPayBin(bin); changed = true; }
-            if (!StringUtils.hasText(existing.getPayLast4()) && StringUtils.hasText(last4)) { existing.setPayLast4(last4); changed = true; }
-            if (!StringUtils.hasText(existing.getPayRaw())   && StringUtils.hasText(raw))   { existing.setPayRaw(raw); changed = true; }
-            if (changed) paymentRepo.save(existing);
-
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "ALREADY_REGISTERED");
-            body.put("billingKey", existing.getPayKey());
-            if (existing.getPayPg() != null) body.put("pg", existing.getPayPg());
-            if (existing.getPayBrand() != null) body.put("brand", existing.getPayBrand());
-            if (existing.getPayBin() != null) body.put("bin", existing.getPayBin());
-            if (existing.getPayLast4() != null) body.put("last4", existing.getPayLast4());
-            return ResponseEntity.ok(body);
+            // 내 카드 → 메타 보강 후 OK
+            safeMergeMeta(existing, safeExtract(req.getRawJson()));
+            if (!StringUtils.hasText(existing.getPayRaw()) && StringUtils.hasText(req.getRawJson())) {
+                existing.setPayRaw(req.getRawJson());
+            }
+            try {
+                paymentRepo.save(existing);
+            } catch (Exception e) {
+                log.warn("update meta failed but keeping existing card. {}", e.toString());
+                // 메타 보강 실패해도 기존 등록은 유지하므로 OK
+            }
+            return ResponseEntity.ok("ALREADY_REGISTERED");
         }
 
-        // 2) 신규 저장
-        var entity = new PlanPaymentEntity();
-        entity.setMid(mid);
-        entity.setPayCustomer("cust_" + mid);
-        entity.setPayKey(key);
-        entity.setPayPg(pg);
-        entity.setPayBrand(brand);
-        entity.setPayBin(bin);
-        entity.setPayLast4(last4);
-        entity.setPayRaw(raw);
+        // 2) 복합 유니크 방지 (mid+key) — 제약 위반 사전 차단
+        if (paymentRepo.existsByMidAndPayKey(mid, billingKey)) {
+            return ResponseEntity.ok("ALREADY_REGISTERED");
+        }
+
+        // 3) 신규 저장 (메타/RAW 비어도 OK) + PAYCUSTOMER NOT NULL 충족
+        PlanCardMeta meta = safeExtract(req.getRawJson());
+
+        // PortOne customerId 확보 시도 (없으면 mid로 대체)
+        String customerId = null;
+        try {
+            // 필요 시 실제 customerId 확보 로직 연결 (존재할 경우)
+            // customerId = profileSvc.ensureCustomerId(mid);
+        } catch (Exception ignore) {}
+        if (!StringUtils.hasText(customerId)) {
+            customerId = mid; // 🔴 DB NOT NULL 충족을 위해 최소 mid 사용
+        }
+
+        PlanPaymentEntity e = PlanPaymentEntity.builder()
+                .mid(mid)
+                .payKey(billingKey)
+                .payCustomer(customerId)                // 🔴 핵심: NOT NULL 방지
+                .payCreatedAt(LocalDateTime.now())
+                .payRaw(req.getRawJson())
+                .build();
+
+        safeMergeMeta(e, meta);
 
         try {
-            paymentRepo.save(entity);
-        } catch (DataIntegrityViolationException e) {
-            var exist = paymentRepo.findByPayKey(key).orElse(null);
-            if (exist != null) {
-                if (!Objects.equals(exist.getMid(), mid)) {
-                    Map<String, Object> body = new HashMap<>();
-                    body.put("error", "OWNED_BY_ANOTHER_USER");
-                    body.put("billingKey", key);
-                    return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
-                }
-                boolean changed = false;
-                if (!StringUtils.hasText(exist.getPayPg())    && StringUtils.hasText(pg))    { exist.setPayPg(pg); changed = true; }
-                if (!StringUtils.hasText(exist.getPayBrand()) && StringUtils.hasText(brand)) { exist.setPayBrand(brand); changed = true; }
-                if (!StringUtils.hasText(exist.getPayBin())   && StringUtils.hasText(bin))   { exist.setPayBin(bin); changed = true; }
-                if (!StringUtils.hasText(exist.getPayLast4()) && StringUtils.hasText(last4)) { exist.setPayLast4(last4); changed = true; }
-                if (!StringUtils.hasText(exist.getPayRaw())   && StringUtils.hasText(raw))   { exist.setPayRaw(raw); changed = true; }
-                if (changed) paymentRepo.save(exist);
-
-                Map<String, Object> body = new HashMap<>();
-                body.put("message", "ALREADY_REGISTERED");
-                body.put("billingKey", exist.getPayKey());
-                if (exist.getPayPg() != null) body.put("pg", exist.getPayPg());
-                if (exist.getPayBrand() != null) body.put("brand", exist.getPayBrand());
-                if (exist.getPayBin() != null) body.put("bin", exist.getPayBin());
-                if (exist.getPayLast4() != null) body.put("last4", exist.getPayLast4());
-                return ResponseEntity.ok(body);
+            paymentRepo.save(e);
+            return ResponseEntity.ok(toMap(e));
+        } catch (DataIntegrityViolationException dup) {
+            String msg = String.valueOf(dup.getMostSpecificCause());
+            // 제약 위반 메시지에 따라 분기
+            if (msg != null && msg.contains("UK_PLANPAYMENT_MID_KEY")) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error","DUPLICATE_BILLING_KEY"));
             }
-            throw e;
+            if (msg != null && msg.contains("ORA-01400") && msg.contains("PAYCUSTOMER")) {
+                return ResponseEntity.badRequest().body(Map.of("error","MISSING_PAYCUSTOMER"));
+            }
+            log.warn("register constraint violation: {}", msg);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error","CONSTRAINT_VIOLATION"));
+        } catch (Exception ex) {
+            log.error("REGISTER FAIL mid={} key={} rawLen={} ex={}",
+                    mid, billingKey, (req.getRawJson()==null?0:req.getRawJson().length()), ex.toString());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error","INTERNAL_SERVER_ERROR"));
         }
-
-        // 3) 프로필 upsert
-        PlanPaymentRegisterReq req2 = new PlanPaymentRegisterReq();
-        req2.setCustomerId(entity.getPayCustomer());
-        req2.setBillingKey(entity.getPayKey());
-        req2.setPg(entity.getPayPg());
-        req2.setBrand(entity.getPayBrand());
-        req2.setBin(entity.getPayBin());
-        req2.setLast4(entity.getPayLast4());
-        req2.setRawJson(entity.getPayRaw());
-
-        profileSvc.upsert(mid, req2);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("message", "REGISTERED");
-        body.put("billingKey", entity.getPayKey());
-        if (entity.getPayPg() != null) body.put("pg", entity.getPayPg());
-        if (entity.getPayBrand() != null) body.put("brand", entity.getPayBrand());
-        if (entity.getPayBin() != null) body.put("bin", entity.getPayBin());
-        if (entity.getPayLast4() != null) body.put("last4", entity.getPayLast4());
-        return ResponseEntity.ok(body);
     }
 
-    private static String safe(String s) {
-        return s == null ? null : s.trim();
-    }
-    private static String firstNonBlank(String... vals) {
-        for (String v : vals) if (v != null && !v.isBlank()) return v;
-        return null;
+    // ===== helpers =====
+
+    private static Map<String,Object> toMap(PlanPaymentEntity e) {
+        Map<String,Object> m = new LinkedHashMap<>();
+        m.put("id", e.getPayId());
+        m.put("billingKey", e.getPayKey());
+        m.put("brand", e.getPayBrand());
+        m.put("bin", e.getPayBin());
+        m.put("last4", e.getPayLast4());
+        m.put("pg", e.getPayPg());
+        m.put("createdAt", e.getPayCreatedAt()==null? null : e.getPayCreatedAt().toString());
+        return m;
     }
 
-    /** 고객 ID 계산 */
-    @PostMapping("/customer-id")
-    public ResponseEntity<?> customerId(HttpSession session) {
-        final String mid = (String) session.getAttribute("sid");
-        if (!StringUtils.hasText(mid)) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("error", "LOGIN_REQUIRED");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    private PlanCardMeta safeExtract(String rawJson) {
+        try {
+            return pgSvc.extractCardMeta(rawJson);
+        } catch (Exception ex) {
+            log.warn("extractCardMeta failed, continue without meta: {}", ex.toString());
+            return new PlanCardMeta(null,null,null,null);
         }
-        Map<String, Object> body = new HashMap<>();
-        body.put("customerId", "cust_" + mid);
-        return ResponseEntity.ok(body);
+    }
+
+    // ⚠️ PlanCardMeta 가 record 이므로 brand()/bin()/last4()/pg() 접근자 사용
+    private void safeMergeMeta(PlanPaymentEntity e, PlanCardMeta meta) {
+        if (meta == null) return;
+        if (!StringUtils.hasText(e.getPayBrand()) && StringUtils.hasText(meta.getBrand())) e.setPayBrand(meta.getBrand());
+        if (!StringUtils.hasText(e.getPayBin())   && StringUtils.hasText(meta.getBin()))   e.setPayBin(meta.getBin());
+        if (!StringUtils.hasText(e.getPayLast4()) && StringUtils.hasText(meta.getLast4())) e.setPayLast4(meta.getLast4());
+        if (!StringUtils.hasText(e.getPayPg())    && StringUtils.hasText(meta.getPg()))    e.setPayPg(meta.getPg());
     }
 }

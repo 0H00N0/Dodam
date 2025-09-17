@@ -2,6 +2,7 @@
 package com.dodam.plan.repository;
 
 import com.dodam.plan.Entity.PlanInvoiceEntity;
+import com.dodam.plan.dto.PlanConfirmView;
 import com.dodam.plan.enums.PlanEnums.PiStatus;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;

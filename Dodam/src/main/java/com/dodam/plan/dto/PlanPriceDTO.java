@@ -29,7 +29,7 @@ public class PlanPriceDTO {
 	        .amount(e.getPpriceAmount())
 	        .currency(e.getPpriceCurr())
 	        .bilMode(e.getPpriceBilMode())
-	        .termMonth(e.getPlanTerms() != null ? e.getPlanTerms().getPtermMonth() : null) // ✅ 단수형
+	        .termMonth(e.getPterm() != null ? e.getPterm().getPtermMonth() : null) // ✅ 단수형
 	        .build();
 	}
 

@@ -46,14 +46,20 @@ public class PlanPaymentOrchestratorService {
         log.info("[confirmInvoice] invId={}, piUid={}, amount={}, mid={}",
                 inv.getPiId(), inv.getPiUid(), inv.getPiAmount(), payment.getMid());
 
+        // null-safe customerId (없으면 mid 로 대체)
+        String customerId = payment.getPayCustomer();
+        if (customerId == null || customerId.isBlank()) {
+            customerId = payment.getMid(); // 또는 member.getMid()
+        }
+
         var res = pgSvc.payByBillingKey(
-                inv.getPiUid(),                   // 내부 uid
-                payment.getPayCustomer(),         // (== mid)
-                payment.getPayKey(),
-                inv.getPiAmount().longValue()
+                inv.getPiUid(),                    // paymentId
+                payment.getPayKey(),               // billingKey ✅
+                inv.getPiAmount().longValue(),     // amount
+                customerId                         // customerId
         );
 
-        String uid      = res.uid();
+        String uid      = res.paymentId();
         String reason   = res.failReason();
         String receipt  = res.receiptUrl();
         boolean success = res.success();

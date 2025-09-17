@@ -11,6 +11,8 @@ import com.dodam.plan.service.PlanPaymentGatewayService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +25,7 @@ import java.util.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/payments")
+@ConditionalOnProperty(value = "payments.confirm.immediate.enabled", havingValue = "true", matchIfMissing = false)
 public class PlanImmediateConfirmController {
 
     private final PlanPaymentRepository paymentRepo;

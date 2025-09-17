@@ -18,7 +18,7 @@ public class PlanWebClientConfig {
 
         return WebClient.builder()
                 .baseUrl(props.getBaseUrl()) // 예: https://api.portone.io
-                .defaultHeader(HttpHeaders.AUTHORIZATION, "PortOne " + props.getSecret())
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "PortOne " + props.getV2Secret())
                 .exchangeStrategies(strategies)
                 .build();
     }

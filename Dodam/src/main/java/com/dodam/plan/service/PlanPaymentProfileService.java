@@ -51,7 +51,7 @@ public class PlanPaymentProfileService {
         String pg         = coalesceNonBlank(req.getPg(),         opt(meta, PlanCardMeta::getPg));
 
         // 3) (mid, billingKey) 조회 → 있으면 갱신, 없으면 신규 (중복 insert 방지)
-        PlanPaymentEntity entity = paymentRepo.findByMidAndPayKey(mid, req.getBillingKey())
+        PlanPaymentEntity entity = paymentRepo.findByMemberMidAndPayKey(mid, req.getBillingKey())
                 .orElseGet(() -> {
                     PlanPaymentEntity e = new PlanPaymentEntity();
                     e.setMid(mid);

@@ -1,52 +1,79 @@
 package com.dodam.plan.repository;
 
+import com.dodam.plan.Entity.PlanPriceEntity;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
-import com.dodam.plan.Entity.PlanPriceEntity;
-
 public interface PlanPriceRepository extends JpaRepository<PlanPriceEntity, Long> {
-	List<PlanPriceEntity> findByPlan_PlanIdAndPpriceActiveTrue(Long planId);
 
-	Optional<PlanPriceEntity> findByPlan_PlanIdAndPterm_PtermIdAndPpriceBilModeAndPpriceActiveTrue(Long planId,
-			Long ptermId, String bilMode);
+    /* ───────── 기본 목록 조회 ───────── */
+    List<PlanPriceEntity> findByPlan_PlanIdAndPpriceActiveTrue(Long planId);
 
-	// ✅ 테이블/컬럼명은 실제 스키마에 맞게 필요 시 조정
-	// - PhysicalNamingStrategyStandardImpl를 쓰면 @Table(name="PlanPrice") 기준으로
-	// "PlanPrice"
-	// - plan FK 컬럼은 보통 "plan_id" 혹은 "PlanId"
-	// - 기간 컬럼은 "months"가 아니라면 그대로 실제 컬럼명으로 바꿔도 WHERE 절은 동작함
-	@Query(value = """
-			SELECT *
-			  FROM PlanPrice
-			 WHERE (plan_id = :planId OR PlanId = :planId)
-			   AND (months = :months OR PpriceMonths = :months OR PPRICE_MONTHS = :months)
-			 FETCH FIRST 1 ROWS ONLY
-			""", nativeQuery = true)
-	Optional<PlanPriceEntity> findByPlanIdAndMonths(@Param("planId") Long planId, @Param("months") int months);
+    @EntityGraph(attributePaths = {"pterm"})
+    List<PlanPriceEntity> findByPlan_PlanIdAndPpriceActiveTrueOrderByPterm_PtermMonth(Long planId);
 
-	// ── 1) 불리언 직비교 버전 ─────────────────────────────
     @Query("""
         select p
           from PlanPriceEntity p
-          join fetch p.planTerms t
-         where p.plan.planId = :planId
-           and p.ppriceActive = true
-    """)
-    List<PlanPriceEntity> findActiveWithTerms(@Param("planId") Long planId);
-
-    // ── 2) 파라미터 버전(원하면 같이 둬도 됨) ──────────────
-    @Query("""
-        select p
-          from PlanPriceEntity p
-          join fetch p.planTerms t
+          join fetch p.pterm t
          where p.plan.planId = :planId
            and p.ppriceActive = :active
+         order by t.ptermMonth
     """)
     List<PlanPriceEntity> findWithTermsByPlanAndActive(@Param("planId") Long planId,
                                                        @Param("active") Boolean active);
+
+    /* ───────── 단건 조회: plan + termId + mode 정확히 (ACTIVE=true) ───────── */
+    // (기존 서비스 시그니처를 그대로 살림)
+    Optional<PlanPriceEntity>
+    findFirstByPlan_PlanIdAndPterm_PtermIdAndPpriceBilModeAndPpriceActiveTrue(
+            Long planId, Long ptermId, String mode);
+
+    // 대소문자 무시 버전 (더 관대)
+    Optional<PlanPriceEntity>
+    findFirstByPlan_PlanIdAndPterm_PtermIdAndPpriceBilModeIgnoreCaseAndPpriceActiveTrue(
+            Long planId, Long ptermId, String mode);
+
+    // months(=ptermMonth)로 직접 찾는 오버로드
+    Optional<PlanPriceEntity>
+    findFirstByPlan_PlanIdAndPterm_PtermMonthAndPpriceBilModeIgnoreCaseAndPpriceActiveTrue(
+            Long planId, int months, String mode);
+
+    // enum을 그대로 받는 브릿지(default): 서비스가 enum을 넘겨도 안전
+    default Optional<PlanPriceEntity> findFirstByPlanAndPtermAndMode(Long planId, Long ptermId, Enum<?> mode) {
+        return (mode == null)
+                ? Optional.empty()
+                : findFirstByPlan_PlanIdAndPterm_PtermIdAndPpriceBilModeIgnoreCaseAndPpriceActiveTrue(
+                        planId, ptermId, mode.name());
+    }
+
+    /* ───────── 정확 모드 없을 때 AUTO fallback ───────── */
+    @Query("""
+        select pp
+          from PlanPriceEntity pp
+         where pp.plan.planId = :planId
+           and pp.pterm.ptermId = :ptermId
+           and pp.ppriceActive = true
+           and (pp.ppriceBilMode = :mode or pp.ppriceBilMode = 'AUTO')
+         order by case when pp.ppriceBilMode = :mode then 0 else 1 end
+    """)
+    Optional<PlanPriceEntity> findBestPrice(@Param("planId") Long planId,
+                                            @Param("ptermId") Long ptermId,
+                                            @Param("mode") String mode);
+
+    /* ───────── 이름 유지 요청: findByPlanIdAndMonths (Native) ───────── */
+    @Query(value = """
+        SELECT p.*
+          FROM PLANPRICE p
+          JOIN PLANTERMS t ON t.PTERM_ID = p.PTERM_ID
+         WHERE p.PLAN_ID = :planId
+           AND t.PTERM_MONTH = :months
+           AND p.PPRICE_ACTIVE = 1
+         FETCH FIRST 1 ROWS ONLY
+    """, nativeQuery = true)
+    Optional<PlanPriceEntity> findByPlanIdAndMonths(@Param("planId") Long planId,
+                                                    @Param("months") int months);
 }
