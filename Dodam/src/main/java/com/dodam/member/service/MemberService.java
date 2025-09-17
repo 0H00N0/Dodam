@@ -1,95 +1,195 @@
 package com.dodam.member.service;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import com.dodam.member.dto.ChangePwDTO;
+import com.dodam.member.dto.ChildDTO;
 import com.dodam.member.dto.MemberDTO;
-import com.dodam.member.entity.*;
-import com.dodam.member.repository.*;
+import com.dodam.member.entity.ChildEntity;
+import com.dodam.member.entity.LoginmethodEntity;
+import com.dodam.member.entity.MemberEntity;
+import com.dodam.member.entity.MemtypeEntity;
+import com.dodam.member.repository.ChildRepository;
+import com.dodam.member.repository.LoginmethodRepository;
+import com.dodam.member.repository.MemberRepository;
+import com.dodam.member.repository.MemtypeRepository;
+
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.UUID;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder; // ✅ 추가
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
 public class MemberService {
 
-    private final MemberRepository memberRepo;
-    private final MemtypeRepository memtypeRepo;
-    private final LoginmethodRepository loginRepo;
+    private final MemberRepository memberRepository;
+    private final LoginmethodRepository loginmethodRepository;
+    private final MemtypeRepository memtypeRepository;
+    private final PasswordEncoder passwordEncoder; 
+    private final ChildRepository childRepository;
 
-    /** 회원가입: 기본 memtype=0(일반), loginmethod=local */
+    private LoginmethodEntity getOrCreateLocal() {
+        return loginmethodRepository.findByLmtype("LOCAL")
+                .orElseGet(() -> loginmethodRepository.save(
+                        LoginmethodEntity.builder().lmtype("LOCAL").build()
+                ));
+    }
+
+    private MemtypeEntity getOrCreateDefault() {
+        // 0 = 일반
+        return memtypeRepository.findByMtcode(0)
+                .orElseGet(() -> memtypeRepository.save(
+                        MemtypeEntity.builder().mtcode(0).mtname("일반").build()
+                ));
+    }
+
+    public void signup(MemberDTO dto) {
+        if (memberRepository.existsByMid(dto.getMid())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "duplicated mid");
+        }
+
+        // ✅ 비밀번호 해시 저장
+        String encoded = passwordEncoder.encode(dto.getMpw());
+
+        MemberEntity e = MemberEntity.builder()
+                .mid(dto.getMid())
+                .mpw(encoded)                  // ✅ 해시 저장
+                .mname(dto.getMname())
+                .mpost(dto.getMpost())
+                .maddr(dto.getMaddr())
+                .memail(dto.getMemail())
+                .mbirth(dto.getMbirth())
+                .mnic(dto.getMnic())
+                .mtel(dto.getMtel())
+                .loginmethod(getOrCreateLocal())
+                .memtype(getOrCreateDefault())
+                .build();
+
+        memberRepository.save(e);
+        //자녀정보 저장
+        if (dto.getChildren() != null && !dto.getChildren().isEmpty()) {
+            for (ChildDTO c : dto.getChildren()) {
+                ChildEntity child = ChildEntity.builder()
+                        .chname(c.getChname())
+                        .chbirth(c.getChbirth())
+                        .member(e)
+                        .build();
+                childRepository.save(child);
+            }
+        }
+    }
+
+    public MemberDTO login(String mid, String rawPw) {
+        var e = memberRepository.findByMid(mid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid id/pw"));
+
+        // ✅ 해시 검증
+        if (!passwordEncoder.matches(rawPw, e.getMpw())) {
+            // (선택) 평문→해시 마이그레이션이 필요하면 아래 주석 블록 참고
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid id/pw");
+        }
+
+        return new MemberDTO(e);
+    }
+
+    public boolean exists(String mid) {
+        return memberRepository.existsByMid(mid);
+    }
+
+    private static boolean isBlank(String s) { return s == null || s.isBlank(); }
+
     @Transactional
-    public void signup(MemberDTO dto){
-        if (memberRepo.existsByMid(dto.getMid()))
-            throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
-        if (dto.getMemail() != null && memberRepo.existsByMemail(dto.getMemail()))
-            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
-
-        MemtypeEntity role = memtypeRepo.findByRoleName("USER")
-            .orElseThrow(() -> new IllegalStateException("'USER' 역할이 DB에 없습니다."));
-        LoginmethodEntity local = loginRepo.findByLmtype("local")
-            .orElseThrow(() -> new IllegalStateException("loginmethod(local) 시드가 없습니다."));
-
-        MemberEntity e = MemberDTO.toEntity(dto);
-        e.setMpw(dto.getMpw()); // Security 미적용 → 평문 저장
-        e.setMemtype(role);
-        e.setLoginmethod(local);
-
-        memberRepo.save(e);
-    }
-
-    /** 로그인 검증 (Security 제외, 단순 equals 비교) */
-    public boolean loginCheck(String mid, String rawPw){
-        return memberRepo.findByMid(mid)
-                .map(e -> rawPw.equals(e.getMpw()))
-                .orElse(false);
-    }
-
-    public MemberDTO readByMid(String mid){
-        return memberRepo.findByMid(mid).map(MemberDTO::new).orElse(null);
-    }
-
-    /** 관리자용: 모든 회원 조회 */
-    public List<MemberDTO> findAll(){
-        return memberRepo.findAll()
-                .stream()
-                .map(MemberDTO::new)
-                .collect(Collectors.toList());
-    }
-
-    /** 관리자용: ID로 회원 조회 */
-    public MemberDTO findById(Long id){
-        return memberRepo.findById(id).map(MemberDTO::new).orElse(null);
-    }
-
-    /** 관리자용: 회원 삭제 */
-    public void deleteById(Long id){
-        memberRepo.deleteById(id);
-    }
-    public MemberEntity authenticate(String username, String password) {
-        System.out.println("인증 시작: " + username + " / " + password);
-        
-        // 붉은색으로 변경된 부분은 변수 이름과 필드 접근 방식을 수정한 부분입니다.
-        MemberEntity member = memberRepo.findByMid(username)
-                .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
-        
-        System.out.println("사용자 찾음: " + member.getMid() + ", MTYPE: " + member.getMemtype().getRoleName());
-        
-        // 관리자 권한 확인
-        String role = member.getMemtype().getRoleName();
-        if (!("SUPERADMIN".equals(role) || "ADMIN".equals(role) || "STAFF".equals(role))) {
-            throw new RuntimeException("관리자 권한이 없습니다.");
+    public void updateProfile(String sid, MemberDTO dto) {
+        MemberEntity entity = memberRepository.findByMid(sid)
+            .orElseThrow(() -> new RuntimeException("회원 없음"));
+        entity.setMemail(dto.getMemail());
+        entity.setMtel(dto.getMtel());
+        entity.setMaddr(dto.getMaddr());
+        entity.setMnic(dto.getMnic());
+        entity.setMpost(dto.getMpost());
+        entity.setMname(dto.getMname());
+        entity.setMbirth(dto.getMbirth());
+        memberRepository.save(entity);
+        //자녀정보 삭제 후 정보 재삽입
+        childRepository.deleteByMember(entity);
+        if (dto.getChildren() != null) {
+            for (ChildDTO c : dto.getChildren()) {
+                ChildEntity child = ChildEntity.builder()
+                    .chname(c.getChname())
+                    .chbirth(c.getChbirth())
+                    .member(entity)
+                    .build();
+                childRepository.save(child);
+            }
         }
         
-        // 비밀번호 검증
-        if (!password.equals(member.getMpw())) {
-            throw new RuntimeException("비밀번호가 일치하지 않습니다.");
-        }
-        
-        System.out.println("인증 성공: " + member.getMid() + ", 권한: " + member.getMemtype().getRoleName());
-        return member;
     }
+
+    public void changePw(String sid, ChangePwDTO dto) {
+        MemberEntity entity = memberRepository.findByMid(sid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 없음"));
+
+        // 현재 비밀번호 검증
+        if (!passwordEncoder.matches(dto.getCurrentPw(), entity.getMpw())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "현재 비밀번호가 일치하지 않습니다.");
+        }
+        entity.setMpw(passwordEncoder.encode(dto.getNewPw()));
+
+        // 새 비밀번호 저장
+        entity.setMpw(passwordEncoder.encode(dto.getNewPw()));
+        memberRepository.save(entity);
+    }
+
+    public MemberDTO me(String mid) {
+        var e = memberRepository.findByMid(mid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 없음"));
+        return new MemberDTO(e);
+    }
+
+    public String findIdByNameAndTel(String mname, String mtel) {
+        return memberRepository.findByMnameAndMtel(mname, mtel)
+            .map(MemberEntity::getMid)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
+    }
+
+    public String findIdByNameAndEmail(String mname, String memail) {
+        return memberRepository.findByMnameAndMemail(mname, memail)
+            .map(MemberEntity::getMid)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
+    }
+
+    // 비밀번호 암호화 후 DB에 저장
+    public void updatePassword(String mid, String tempPw) {
+        MemberEntity member = memberRepository.findByMid(mid).orElseThrow();
+        member.setMpw(passwordEncoder.encode(tempPw));
+        memberRepository.save(member);
+    }
+
+    public boolean existsByMidNameEmail(String mid, String mname, String memail) {
+        return memberRepository.findByMidAndMnameAndMemail(mid, mname, memail).isPresent();
+    }
+
+    public boolean existsByMidNameTel(String mid, String mname, String mtel) {
+        return memberRepository.findByMidAndMnameAndMtel(mid, mname, mtel).isPresent();
+    }
+    
+    public void changePwDirect(String mid, String newPw) {
+        MemberEntity entity = memberRepository.findByMid(mid)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 없음"));
+        entity.setMpw(passwordEncoder.encode(newPw));
+        memberRepository.save(entity);
+    }
+    
+    public MemberDTO findByMid(String mid) {
+        var e = memberRepository.findByMid(mid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "no member"));
+        return new MemberDTO(e);
+    }
+
+    
 }
 
