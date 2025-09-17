@@ -1,38 +1,33 @@
 // src/main/java/com/dodam/plan/dto/PlanCardMeta.java
 package com.dodam.plan.dto;
 
-import lombok.Data;
+import lombok.*;
 
-/**
- * 카드 메타정보 (브랜드, BIN, 끝 4자리, 발급사명, 고객아이디)
- * - 기존 코드에서 new PlanCardMeta(brand, bin, last4, issuerName) 4-인자 생성자를
- *   사용하던 부분과 호환을 위해 4-인자 생성자도 유지합니다.
- */
-@Data
+@Getter @Setter @NoArgsConstructor
+@AllArgsConstructor
 public class PlanCardMeta {
-    private String brand;
-    private String bin;
-    private String last4;
-    private String issuerName;
-    private String customerId;  // ✅ 추가
-    private String pg;
-    
-    public PlanCardMeta() {}
+    private String brand;      // 카드 브랜드
+    private String bin;        // 카드 BIN
+    private String last4;      // 끝 4자리
+    private String pg;         // PG 제공자 (tosspayments 등)
+    private boolean issued;    // 빌링키 발급 성공 여부
+    private String customerId; // (선택) 고객 식별자
 
-    /** 기존 4-인자 생성자 (호환용) */
+    // 하위호환: (brand, bin, last4, issuerName) 시그니처 대응
     public PlanCardMeta(String brand, String bin, String last4, String issuerName) {
         this.brand = brand;
         this.bin = bin;
         this.last4 = last4;
-        this.issuerName = issuerName;
+        this.pg = issuerName; // 과거 issuerName을 pg로 흡수
+        this.issued = true;
     }
-
-    /** 신규 5-인자 생성자 */
-    public PlanCardMeta(String brand, String bin, String last4, String issuerName, String customerId) {
+    
+    public PlanCardMeta(String customerId, String brand, String bin, String last4, String pg) {
         this.brand = brand;
         this.bin = bin;
         this.last4 = last4;
-        this.issuerName = issuerName;
+        this.pg = pg;
+        this.issued = true;      // confirm에서 만든 메타는 보통 발급 성공 컨텍스트
         this.customerId = customerId;
     }
 }

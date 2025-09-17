@@ -4,6 +4,10 @@ package com.dodam.plan.repository;
 import com.dodam.member.entity.MemberEntity;                 // 프로젝트 경로 유지
 import com.dodam.plan.Entity.PlanPaymentEntity;              // ⚠ 실제 패키지/대소문자에 맞춤 (Entity가 대문자면 그대로)
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -76,4 +80,20 @@ public interface PlanPaymentRepository extends JpaRepository<PlanPaymentEntity, 
         // 3) fallback: 가장 최근
         return Optional.of(list.get(0));
     }
+    
+    @Modifying
+    @Transactional
+    @Query("""
+      update PlanPaymentEntity p
+      set p.payBin   = coalesce(:bin,   p.payBin),
+          p.payBrand = coalesce(:brand, p.payBrand),
+          p.payLast4 = coalesce(:last4, p.payLast4),
+          p.payPg    = coalesce(:pg,    p.payPg)
+      where p.payId = :paymentId
+    """)
+    int updateCardMeta(@Param("paymentId") Long paymentId,
+                       @Param("bin")   String bin,
+                       @Param("brand") String brand,
+                       @Param("last4") String last4,
+                       @Param("pg")    String pg);
 }

@@ -1,6 +1,7 @@
 // src/main/java/com/dodam/plan/service/PlanPaymentGatewayServiceImpl.java
 package com.dodam.plan.service;
 
+import com.dodam.plan.config.PlanPortoneProperties;
 import com.dodam.plan.dto.PlanCardMeta;
 import com.dodam.plan.dto.PlanLookupResult;
 import com.dodam.plan.dto.PlanPayResult;
@@ -8,66 +9,82 @@ import com.dodam.plan.dto.PlanPaymentLookupResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;          // ✅ 추가
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
 @Service
 public class PlanPaymentGatewayServiceImpl implements PlanPaymentGatewayService {
 
-    private final WebClient portone;   // PortOne 전용 WebClient
+    private final WebClient portone;   // PortOne 전용 WebClient (@Qualifier("portoneWebClient"))
     private final ObjectMapper mapper;
+    private final PlanPortoneProperties props;
 
-    // ✅ 명시 생성자 + Qualifier 로 주입 충돌 해결
     public PlanPaymentGatewayServiceImpl(
-            @Qualifier("portoneWebClient") WebClient portone,  // <-- 여기 중요
-            ObjectMapper mapper
+            @Qualifier("portoneWebClient") WebClient portone,
+            ObjectMapper mapper,
+            PlanPortoneProperties props
     ) {
         this.portone = portone;
         this.mapper = mapper;
+        this.props = props;
     }
+
+    private static final ParameterizedTypeReference<Map<String,Object>> MAP =
+            new ParameterizedTypeReference<>() {};
 
     @Override
     public PlanPayResult payByBillingKey(String paymentId, String billingKey, long amount, String customerId) {
         try {
-            Map<String, Object> payload = Map.of(
-                    "paymentId", paymentId,
-                    "billingKey", billingKey,
-                    "amount", amount,
-                    "customerId", customerId
-            );
+            // ==== 요청 바디 구성 (v2 권장 필드 + 상점/환경 고정) ====
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("paymentId", paymentId);
+            payload.put("billingKey", billingKey);
+            payload.put("amount", amount);
+            if (StringUtils.hasText(customerId)) {
+                payload.put("customerId", customerId);
+            }
+            if (StringUtils.hasText(props.getStoreId())) {
+                payload.put("storeId", props.getStoreId());
+            }
+            // 선택: 테스트 환경이면 true
+            if (props.getIsTest() != null) {
+                payload.put("isTest", props.getIsTest());
+            }
 
-            Mono<ClientResponse> call = portone.post()
-                    .uri("/v2/payments/billing-keys/confirm")
+            // ==== 호출 ====
+            String body = portone.post()
+                    .uri("/payments/billing-keys/confirm") // ✅ v2 billing-key 결제 승인
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(payload)
-                    .exchangeToMono(Mono::just)
-                    .timeout(Duration.ofSeconds(15));
-
-            ClientResponse resp = call.block();
-            if (resp == null) {
-                return fail(paymentId, "NO_RESPONSE", null, "{}");
-            }
-
-            HttpStatusCode http = resp.statusCode();
-            String body = resp.bodyToMono(String.class).defaultIfEmpty("").block();
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, resp ->
+                            resp.bodyToMono(String.class).defaultIfEmpty("")
+                                    .flatMap(err -> {
+                                        log.error("[payByBillingKey] {} {}\nreq={}\nres={}",
+                                                resp.statusCode(), "/payments/billing-keys/confirm", safeJson(payload), err);
+                                        return resp.createException().flatMap(Mono::error);
+                                    })
+                    )
+                    .bodyToMono(String.class)
+                    .timeout(Duration.ofSeconds(20))
+                    .block();
 
             if (!StringUtils.hasText(body)) {
-                log.warn("[payByBillingKey] empty body. status={}", http.value());
-                return http.is2xxSuccessful()
-                        ? accepted(paymentId, body)
-                        : fail(paymentId, "EMPTY_RESPONSE", null, "{}");
+                log.warn("[payByBillingKey] empty body");
+                return accepted(paymentId, "{}"); // 모호하면 보류 처리
             }
 
             JsonNode json;
@@ -83,16 +100,18 @@ public class PlanPaymentGatewayServiceImpl implements PlanPaymentGatewayService 
             String receiptUrl = json.path("receiptUrl").asText(null);
             String failReason = json.path("message").asText(null);
 
-            if (http.value() == 202 || "PENDING".equals(status) || "PROCESSING".equals(status)) {
+            // ==== 상태 판정 ====
+            if ("PENDING".equals(status) || "PROCESSING".equals(status)) {
                 return accepted(id, body);
             }
             if ("PAID".equals(status) || "SUCCEEDED".equals(status) || "SUCCESS".equals(status)) {
                 return success(id, receiptUrl, body);
             }
-            if ("FAILED".equals(status) || "CANCELED".equals(status) || http.is4xxClientError() || http.is5xxServerError()) {
-                String reason = StringUtils.hasText(failReason) ? failReason : ("HTTP_" + http.value());
+            if ("FAILED".equals(status) || "CANCELED".equals(status)) {
+                String reason = StringUtils.hasText(failReason) ? failReason : "PAYMENT_" + status;
                 return fail(id, reason, receiptUrl, body);
             }
+            // 상태 값이 비어있거나 알 수 없는 경우
             return fail(id, "UNKNOWN_STATUS:" + status, receiptUrl, body);
 
         } catch (Exception e) {
@@ -111,21 +130,28 @@ public class PlanPaymentGatewayServiceImpl implements PlanPaymentGatewayService 
         return new PlanPayResult(false, id, null, "ACCEPTED", ensureRaw(raw));
     }
     private String ensureRaw(String raw) { return StringUtils.hasText(raw) ? raw : "{}"; }
+    private String safeJson(Object o) {
+        try { return mapper.writeValueAsString(o); } catch (Exception ignored) { return String.valueOf(o); }
+    }
 
     @Override
     public PlanCardMeta extractCardMeta(String rawJson) {
-        if (!StringUtils.hasText(rawJson)) return new PlanCardMeta(null, null, null, null);
+        if (!StringUtils.hasText(rawJson)) return new PlanCardMeta(null, null, null, null, false, null);
         try {
             JsonNode r = mapper.readTree(rawJson);
-            return new PlanCardMeta(
-                    r.path("card").path("bin").asText(null),
-                    r.path("card").path("brand").asText(null),
-                    r.path("card").path("last4").asText(null),
-                    r.path("pg").asText(null)
-            );
+            String status = r.path("status").asText("").toUpperCase();
+            boolean issued = "ISSUED".equals(status);
+
+            String brand = r.path("card").path("brand").asText(null);
+            String bin   = r.path("card").path("bin").asText(null);
+            String last4 = r.path("card").path("last4").asText(null);
+            String pg    = r.path("pgProvider").asText(null); // 응답 키에 맞게
+
+            String customerId = r.path("customer").path("id").asText(null);
+            return new PlanCardMeta(brand, bin, last4, pg, issued, customerId);
         } catch (Exception e) {
             log.warn("[extractCardMeta] parse fail: {}", e.toString());
-            return new PlanCardMeta(null, null, null, null);
+            return new PlanCardMeta(null, null, null, null, false, null);
         }
     }
 
@@ -133,7 +159,7 @@ public class PlanPaymentGatewayServiceImpl implements PlanPaymentGatewayService 
     public PlanLookupResult safeLookup(String paymentId) {
         try {
             String body = portone.get()
-                    .uri("/v2/payments/{id}", paymentId)
+                    .uri("/payments/{id}", paymentId) // ✅ v2 조회
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
                     .bodyToMono(String.class)
@@ -157,20 +183,9 @@ public class PlanPaymentGatewayServiceImpl implements PlanPaymentGatewayService 
         try {
             PlanLookupResult r = safeLookup(paymentId);
             String st = (r.status() == null ? "UNKNOWN" : r.status().toUpperCase());
-
-            return new PlanPaymentLookupResult(
-                    r.id(),
-                    st,
-                    r.rawJson(),
-                    HttpStatus.OK
-            );
+            return new PlanPaymentLookupResult(r.id(), st, r.rawJson(), HttpStatus.OK);
         } catch (Exception e) {
-            return new PlanPaymentLookupResult(
-                    paymentId,
-                    "ERROR",
-                    e.getMessage(),
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            );
+            return new PlanPaymentLookupResult(paymentId, "ERROR", e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

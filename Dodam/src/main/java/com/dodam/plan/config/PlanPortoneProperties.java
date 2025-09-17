@@ -14,6 +14,7 @@ public class PlanPortoneProperties {
     private String pgName;
     private String channelKey;
     private String currency = "KRW";
+    private Boolean isTest = false;
 
     public String authHeader() { return "PortOne " + v2Secret; }
 }
