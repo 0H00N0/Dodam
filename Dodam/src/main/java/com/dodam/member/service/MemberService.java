@@ -11,6 +11,8 @@ import com.dodam.member.repository.ChildRepository;
 import com.dodam.member.repository.LoginmethodRepository;
 import com.dodam.member.repository.MemberRepository;
 import com.dodam.member.repository.MemtypeRepository;
+
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
@@ -100,6 +102,7 @@ public class MemberService {
 
     private static boolean isBlank(String s) { return s == null || s.isBlank(); }
 
+    @Transactional
     public void updateProfile(String sid, MemberDTO dto) {
         MemberEntity entity = memberRepository.findByMid(sid)
             .orElseThrow(() -> new RuntimeException("회원 없음"));
@@ -111,6 +114,18 @@ public class MemberService {
         entity.setMname(dto.getMname());
         entity.setMbirth(dto.getMbirth());
         memberRepository.save(entity);
+        //자녀정보 삭제 후 정보 재삽입
+        childRepository.deleteByMember(entity);
+        if (dto.getChildren() != null) {
+            for (ChildDTO c : dto.getChildren()) {
+                ChildEntity child = ChildEntity.builder()
+                    .chname(c.getChname())
+                    .chbirth(c.getChbirth())
+                    .member(entity)
+                    .build();
+                childRepository.save(child);
+            }
+        }
         
     }
 
