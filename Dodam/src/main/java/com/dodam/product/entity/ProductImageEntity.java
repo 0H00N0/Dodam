@@ -1,17 +1,31 @@
-// ProductImageEntity.java  (URL 저장)
 package com.dodam.product.entity;
-import jakarta.persistence.*; import lombok.*;
 
-@Entity @Table(name="productimage")
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "productimage")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class ProductImageEntity {
-  @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-  @Column(name="proimagenum") private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "proimagenum")
+    private Long proimagenum;
 
-  @ManyToOne(fetch=FetchType.LAZY, optional=false)
-  @JoinColumn(name="pronum") private ProductEntity product;
+    @Column(name = "proimageorder")
+    private Integer proimageorder;
 
-  @Column(name="proimageorder") private Integer orderNo;
-  @Column(name="prourl", nullable=false, length=400) private String url;
-  @Column(name="prodetailimage", length=20) private String type;   // 'THUMB' | 'DETAIL'
+    @Column(name = "prourl", length = 400)
+    private String prourl;               // 미리보기 URL
+
+    @Column(name = "prodetailimage", length = 400)
+    private String prodetailimage;       // 상세보기 URL
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "pronum", nullable = false)
+    private ProductEntity product;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "catenum", nullable = false)
+    private CategoryEntity category;
 }
