@@ -1,75 +1,86 @@
 package com.dodam.product.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
-
+import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "product")
-@Data
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class ProductEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "pronum")
     private Long pronum; // PK
 
-    @ManyToOne
-    @JoinColumn(name = "catenum")
-    private CategoryEntity category; // 카테고리 참조
+    @Column(name = "proname", length = 200)
+    private String proname;
 
-    private Integer procreat; // 등록자 ID (쿠키에서 가져옴, Integer로 가정)
+    @Column(name = "prodetail", length = 2000)
+    private String prodetail;
 
-    @Column(length = 200)
-    private String proname; // 상품명
+    @Column(name = "proprice", precision = 15, scale = 2)
+    private BigDecimal proprice;
 
-    @Lob
-    private String prodetai1; // 설명 (CLOB)
+    @Column(name = "proborrow", precision = 15, scale = 2)
+    private BigDecimal proborrow;
 
-    @Column(precision = 12, scale = 2)
-    private BigDecimal proprice; // 정가
+    @Column(name = "probrand", length = 100)
+    private String probrand;
 
-    @Column(precision = 12, scale = 2)
-    private BigDecimal prorent; // 대여가격
+    @Column(name = "promade", length = 100)
+    private String promade;
 
-    @Column(precision = 12, scale = 2)
-    private BigDecimal prodepos; // 보증금
+    @Column(name = "proage")
+    private Integer proage;
 
-    @Column(precision = 12, scale = 2)
-    private BigDecimal prolatfe; // 연체료
+    @Column(name = "procertif", length = 100)
+    private String procertif;
 
-    @Column(length = 100)
-    private String probrand; // 브랜드
+    @Column(name = "prodate")
+    private LocalDate prodate;
 
-    @Column(length = 100)
-    private String promanuf; // 제조사
+    // 정의서: date 표기지만 생성/수정 "일시" 용도 → LocalDateTime 권장
+    @Column(name = "procre")
+    private LocalDateTime procre;
 
-    @Column(length = 100)
-    private String prosafe; // 안전인증
+    @Column(name = "proupdate")
+    private LocalDateTime proupdate;
 
-    @Column(length = 1)
-    private String prograd; // 등급 (S/A/B/C)
+    // ===== FK =====
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "catenum", nullable = false)
+    private CategoryEntity category;
 
-    private Integer proagfr; // 최소 연령
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "prosnum", nullable = false)
+    private ProstateEntity prostate;
 
-    private Integer proagto; // 최대 연령
+    // 정의서상 FK지만 대상 테이블 스펙 미제공 → 우선 스칼라 보유
+    @Column(name = "resernum", nullable = false)
+    private Long resernum;
 
-    private Integer promind; // 최소 대여일
-
-    @Column(length = 100)
-    private String prostat; // 상태
-
-    private Boolean proispu; // 공개 여부
-
-    private LocalDate prodate; // 날짜 (자동 설정)
-
-    private LocalDateTime procdate; // 생성일시 (자동 설정)
+    @Column(name = "ctnum", nullable = false)
+    private Long ctnum;
+    
+ // ==== 이미지 양방향 ====
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("proimageorder ASC")
+    private List<ProductImageEntity> images = new ArrayList<>();
 
     @PrePersist
-    public void prePersist() {
-        this.prodate = LocalDate.now();
-        this.procdate = LocalDateTime.now();
+    void onCreate() {
+        if (this.procre == null) this.procre = LocalDateTime.now();
+        this.proupdate = this.procre;
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        this.proupdate = LocalDateTime.now();
     }
 }
