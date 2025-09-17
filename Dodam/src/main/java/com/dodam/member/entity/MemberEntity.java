@@ -35,7 +35,6 @@ public class MemberEntity {
     @Column(name = "maddr", nullable = false, length = 255)  private String maddr;  // 상세주소
     @Column(name = "mpost", nullable = false)                private Long mpost;    // 우편번호
     @Column(name = "mbirth", nullable = true)               private LocalDate mbirth; // 생일
-    @Column(name = "mreg",   nullable = false)               private LocalDate mreg;   // 가입일(date)
     @Column(name = "mnic",   length = 100)                   private String mnic;   // 닉네임 (NULL)
 
     @Column(name = "created_at", nullable = false) private LocalDateTime createdAt;
