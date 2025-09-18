@@ -7,8 +7,9 @@ import org.springframework.data.domain.*;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
+@CrossOrigin(origins = "http://localhost:3000") // (포트 3000에서 오는 요청 허용)
 @RestController
-@RequestMapping("/api/products")
+@RequestMapping("/api/productsPage")
 @RequiredArgsConstructor
 public class ProductController {
 
