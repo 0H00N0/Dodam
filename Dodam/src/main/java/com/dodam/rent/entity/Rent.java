@@ -1,4 +1,4 @@
-package com.dodam.rent.entity;
+	package com.dodam.rent.entity;
 
 import com.dodam.member.entity.MemberEntity;
 import com.dodam.product.entity.ProductEntity;
@@ -32,13 +32,13 @@ public class Rent {
     private MemberEntity member;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "resernum", nullable = false)
+    @JoinColumn(name = "resernum", nullable = true)
     private Reservation reservation;
 
-    @Column(name = "rendate", nullable = false)
+    @Column(name = "rendate", nullable = true)
     private LocalDateTime renDate;
 
-    @Column(name = "retdate", nullable = false)
+    @Column(name = "retdate", nullable = true)
     private LocalDateTime retDate;
 
     @Column(name = "remrider")
@@ -47,10 +47,10 @@ public class Rent {
     @Column(name = "renapproval", nullable = false)
     private Integer renApproval;
 
-    @Column(name = "renship", nullable = false)
+    @Column(name = "renship", nullable = true)
     private String renShip;
 
-    @Column(name = "overdue", nullable = false)
+    @Column(name = "overdue", nullable = true)
     private Integer overDue;
 
     @Column(name = "extend")
@@ -61,6 +61,14 @@ public class Rent {
 
     @Column(name = "restate", nullable = false)
     private Integer reState;
+    
+ // ▼▼▼▼▼ 소문자/camelCase 필드 추가 ▼▼▼▼▼
+    @Column(name = "courier")
+    private String courier; // 택배사
+
+    @Column(name = "trackingnumber")
+    private String trackingNumber; // 운송장 번호
+    // ▲▲▲▲▲ 소문자/camelCase 필드 추가 ▲▲▲▲▲
 
     // 데이터 저장 전 기본값 설정
     @PrePersist
