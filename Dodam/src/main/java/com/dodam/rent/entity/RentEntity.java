@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RentEntity {
+public class RentEntity { //대여 테이블
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
