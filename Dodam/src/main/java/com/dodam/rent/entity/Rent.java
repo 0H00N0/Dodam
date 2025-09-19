@@ -41,8 +41,8 @@ public class Rent {
     @Column(name = "retdate", nullable = true)
     private LocalDateTime retDate;
 
-    @Column(name = "remrider")
-    private String remRider;
+    @Column(name = "renrider")
+    private String renRider;
 
     @Column(name = "renapproval", nullable = false)
     private Integer renApproval;
@@ -61,10 +61,6 @@ public class Rent {
 
     @Column(name = "restate", nullable = false)
     private Integer reState;
-    
- // ▼▼▼▼▼ 소문자/camelCase 필드 추가 ▼▼▼▼▼
-    @Column(name = "courier")
-    private String courier; // 택배사
 
     @Column(name = "trackingnumber")
     private String trackingNumber; // 운송장 번호
