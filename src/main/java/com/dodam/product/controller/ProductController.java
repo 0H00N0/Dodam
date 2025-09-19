@@ -52,5 +52,4 @@ public class ProductController {
   public void delete(@PathVariable @Positive Long id) { // ⬅️ 경로 변수 검증
     productService.delete(id);
   }
->>>>>>> refs/remotes/origin/chan787
 }

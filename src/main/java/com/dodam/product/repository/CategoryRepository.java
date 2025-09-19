@@ -6,4 +6,4 @@ import com.dodam.product.entity.CategoryEntity;
 public interface CategoryRepository extends JpaRepository<CategoryEntity, Long> {
 	
 }
->>>>>>> refs/remotes/origin/chan787
+
