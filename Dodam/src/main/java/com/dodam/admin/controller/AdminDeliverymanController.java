@@ -44,3 +44,4 @@ public class AdminDeliverymanController {
         return ResponseEntity.noContent().build();
     }
 }
+
