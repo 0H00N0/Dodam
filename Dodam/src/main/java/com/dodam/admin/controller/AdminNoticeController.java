@@ -6,6 +6,9 @@ import org.springframework.web.bind.annotation.*;
 
 import com.dodam.admin.board.AdminNoticeEntity;
 import com.dodam.admin.board.AdminNoticeService;
+import com.dodam.admin.entity.AdminRole;
+import com.dodam.admin.entity.AdminEntity;
+import com.dodam.admin.repository.AdminRepository;
 
 @Controller
 @RequestMapping("/admin/notices")

@@ -9,7 +9,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
+import com.dodam.admin.board.AdminNoticeDTO;
+import com.dodam.admin.board.AdminNoticeEntity;
+import com.dodam.admin.board.AdminNoticeRepository;
 
 @Service
 @Profile("admin")

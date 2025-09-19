@@ -25,7 +25,8 @@ public class AdminNoticeEntity {
     @Column(nullable = false, length = 200)
     private String title;
     
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "content", nullable = false) // columnDefinition 제거
     private String content;
     
     @Column(nullable = false, length = 50)
