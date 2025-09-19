@@ -1,6 +1,6 @@
 package com.dodam.admin.service;
 
-import com.dodam.admin.board.dto.AdminBoardDTO.*;
+import com.dodam.admin.board.dto.AdminBoardDTO;
 import com.dodam.board.entity.BoardEntity;
 import com.dodam.board.entity.BoardCategoryEntity;
 import com.dodam.board.entity.BoardStateEntity;

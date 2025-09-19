@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "PlanTerms",
+@Table(name = "PLANTERMS",
 		uniqueConstraints = @UniqueConstraint(name = "uk_planTerms_ptermMonth", columnNames = "ptermMonth"))
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PlanTermsEntity {

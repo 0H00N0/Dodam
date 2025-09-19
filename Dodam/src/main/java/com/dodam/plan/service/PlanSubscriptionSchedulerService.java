@@ -32,7 +32,7 @@ public class PlanSubscriptionSchedulerService {
         for (var pm : due) {
             var next = createNextInvoice(pm);
             if (next != null) {
-                orchestrator.tryPayInvoice(next.getPiId());
+                orchestrator.tryPayInvoice(next.getPiId()); // 내부에서 payWithBillingKey 호출
             }
         }
     }

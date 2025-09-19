@@ -1,8 +1,9 @@
-// com.dodam.plan.controller.PlanPgProxyController
+// src/main/java/com/dodam/plan/controller/PlanPgProxyController.java
 package com.dodam.plan.controller;
 
 import com.dodam.plan.service.PlanPaymentGatewayService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,13 +11,11 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @RequestMapping("/pg")
 public class PlanPgProxyController {
-
     private final PlanPaymentGatewayService pgSvc;
 
-    // PortOne v2 결제 단건 조회 (paymentId 기반)
-    @GetMapping("/payments/{paymentId}")
-    public ResponseEntity<?> getPayment(@PathVariable String paymentId) {
-        var res = pgSvc.getPayment(paymentId); // 아래 서비스 추가
-        return ResponseEntity.ok(res);
+    @GetMapping(value = "/lookup", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> lookup(@RequestParam(required = false) String txId,
+                                    @RequestParam(required = false) String paymentId) {
+        return ResponseEntity.ok(pgSvc.safeLookup(paymentId));
     }
 }

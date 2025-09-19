@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(
-  name = "planMember",
+  name = "PLANMEMBER",
   indexes = {
     @Index(name="idx_pm_member",  columnList="mnum"),
     @Index(name="idx_pm_status",  columnList="pmStat"),
@@ -43,11 +43,13 @@ public class PlanMember {
   @JoinColumn(name="mnum", nullable=false, foreignKey=@ForeignKey(name="fk_pm_member"))
   private MemberEntity member;
 
-  @Enumerated(EnumType.STRING) @Column(nullable=false, length=20)
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 20)
   private PmStatus pmStat;
 
-  @Enumerated(EnumType.STRING) @Column(nullable=false, length=20)
-  private PmBillingMode pmBilMode;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 20)
+  private PmBillingMode pmBilMode;  // 정확히 이 이름
 
   @Column(nullable=false) private LocalDateTime pmStart = LocalDateTime.now();
   private LocalDateTime pmTermStart;

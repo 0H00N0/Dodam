@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(
-  name="planRefund",
+  name="PLANREFUND",
   indexes = {
     @Index(name="idx_planrefund_piid", columnList="piId"),
     @Index(name="idx_planrefund_stat", columnList="prefStat")

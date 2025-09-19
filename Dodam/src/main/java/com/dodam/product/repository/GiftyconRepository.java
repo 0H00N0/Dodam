@@ -5,4 +5,4 @@ import com.dodam.product.entity.GiftyconEntity;
 
 public interface GiftyconRepository extends JpaRepository<GiftyconEntity, Long> {
 	
-}
+} 

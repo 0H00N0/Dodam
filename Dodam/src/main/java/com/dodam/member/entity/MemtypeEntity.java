@@ -5,7 +5,11 @@ import lombok.*;
 
 @Entity
 @Table(name = "memtype")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter 
+@Setter 
+@NoArgsConstructor 
+@AllArgsConstructor 
+@Builder
 public class MemtypeEntity {
 
     @Id
@@ -18,4 +22,10 @@ public class MemtypeEntity {
 
     @Column(name = "mtname", nullable = false, length = 50) // "일반","SuperAdmin","Staff","Deliveryman"
     private String mtname;
+
+    
+    // Helper method for role checking
+    public String getRoleName() {
+        return this.mtname;
+    }
 }

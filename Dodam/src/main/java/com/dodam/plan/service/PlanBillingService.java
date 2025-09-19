@@ -1,23 +1,29 @@
+// src/main/java/com/dodam/plan/service/PlanBillingService.java
 package com.dodam.plan.service;
 
-import org.springframework.stereotype.Service;
-import com.dodam.plan.Entity.*;
+import com.dodam.plan.Entity.PlanAttemptEntity;
+import com.dodam.plan.Entity.PlanInvoiceEntity;
 import com.dodam.plan.enums.PlanEnums.PattResult;
 import com.dodam.plan.enums.PlanEnums.PiStatus;
-import com.dodam.plan.repository.*;
+import com.dodam.plan.repository.PlanAttemptRepository;
+import com.dodam.plan.repository.PlanInvoiceRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
-@Service @RequiredArgsConstructor
+import java.time.LocalDateTime;
+
+@Service
+@RequiredArgsConstructor
 public class PlanBillingService {
   private final PlanInvoiceRepository invoiceRepo;
   private final PlanAttemptRepository attemptRepo;
 
   @Transactional
   public void recordAttempt(Long piId, boolean success, String failReason, String respUid, String receiptUrl, String respJson) {
-    var inv = invoiceRepo.findById(piId).orElseThrow();
+    PlanInvoiceEntity inv = invoiceRepo.findById(piId).orElseThrow();
 
-    var att = PlanAttemptEntity.builder()
+    PlanAttemptEntity att = PlanAttemptEntity.builder()
       .invoice(inv)
       .pattResult(success ? PattResult.SUCCESS : PattResult.FAIL)
       .pattFail(success ? null : failReason)
@@ -28,7 +34,7 @@ public class PlanBillingService {
     attemptRepo.save(att);
 
     inv.setPiStat(success ? PiStatus.PAID : PiStatus.FAILED);
-    if (success) inv.setPiPaid(java.time.LocalDateTime.now());
+    if (success) inv.setPiPaid(LocalDateTime.now());   // ← piPaid 사용
     invoiceRepo.save(inv);
   }
 }

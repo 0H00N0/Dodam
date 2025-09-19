@@ -1,35 +1,57 @@
+// src/main/java/com/dodam/plan/Entity/PlanPaymentEntity.java
 package com.dodam.plan.Entity;
 
-import com.dodam.member.entity.MemberEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
 @Entity
 @Table(
-  name = "planPayment",
-  uniqueConstraints = @UniqueConstraint(name = "uk_payment_mnum_customer", columnNames = {"mnum","payCustomer"}),
-  indexes = {
-    @Index(name="idx_planpayment_mnum", columnList="mnum"),
-    @Index(name="idx_planpayment_customer", columnList="payCustomer")
-  }
+    name = "PLANPAYMENT",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "UK_PLANPAYMENT_MID_KEY", columnNames = {"mid", "payKey"})
+        // 만약 payKey 단독 유니크라면 위 줄 대신 @Column(unique=true) on payKey 로 사용하세요.
+    }
 )
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@SequenceGenerator(
+    name = "PLANPAYMENT_SEQ_GEN",
+    sequenceName = "PLANPAYMENT_SEQ",
+    allocationSize = 1
+)
 public class PlanPaymentEntity {
-  @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long payId;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "mnum", nullable = false, foreignKey = @ForeignKey(name="fk_payment_member"))
-  private MemberEntity member;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "payId")
+	private Long payId;
 
-  @Column(nullable=false, length=200) private String payCustomer;
-  @Column(length=300) private String payKey;
-  @Column(length=50)  private String payPg;
-  @Column(length=50)  private String payBrand;
-  @Column(length=10)  private String payBin;
-  @Column(length=4)   private String payLast4;
+    @Column(name = "mid", nullable = false, length = 50)
+    private String mid;
 
-  @Column(nullable=false) private boolean payActive = true;
-  @Column(nullable=false) private LocalDateTime payCreate = LocalDateTime.now();
+    @Column(name = "payKey", nullable = false, length = 200)
+    private String payKey;           // = billingKey
+
+    @Column(name = "payCustomer", length = 200)
+    private String payCustomer;      // PortOne customerId
+
+    @Column(name = "payBrand", length = 50)
+    private String payBrand;         // 카드 브랜드
+
+    @Column(name = "payBin", length = 8)
+    private String payBin;           // BIN
+
+    @Column(name = "payLast4", length = 4)
+    private String payLast4;
+
+    @Column(name = "payPg", length = 50)
+    private String payPg;            // PG사 (tosspayments 등)
+
+    @Column(name = "payCreatedAt", nullable = false)
+    private LocalDateTime payCreatedAt;
+
+    @Lob
+    @Column(name = "payRaw")
+    private String payRaw;           // 원문 JSON (안전 보관용)
 }

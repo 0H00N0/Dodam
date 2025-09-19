@@ -48,11 +48,11 @@ public class BoardEntity {
     @Column(name = "mnic", nullable = false)
     private String mnic; // 회원닉네임
 	
-    @Column(name = "board_code")
+    @Column(name = "boardcode")
     private String code;
     // --- 관계 매핑 ---
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "board_id", nullable = false)  // ← referencedColumnName 제거!
+    @JoinColumn(name = "boardid", nullable = false)  // ← referencedColumnName 제거!
     private BoardEntity board;
     
     // Board(N) : BoardCategory(1) -> 다대일 관계

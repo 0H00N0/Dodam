@@ -1,149 +1,160 @@
 package com.dodam.plan.controller;
 
-import com.dodam.plan.service.PlanPaymentProfileService;
+import com.dodam.plan.dto.PlanCardMeta;
+import com.dodam.plan.dto.PlanPaymentRegisterReq;
+import com.dodam.plan.Entity.PlanPaymentEntity; // ← 네가 쓰는 대문자 Entity 패키지에 맞춤
 import com.dodam.plan.repository.PlanPaymentRepository;
-import com.dodam.member.repository.MemberRepository;
-import com.dodam.plan.Entity.PlanPaymentEntity;
+import com.dodam.plan.service.PlanPaymentGatewayService;
+import com.dodam.plan.service.PlanPaymentProfileService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
 
-/**
- * 세션 기반( sid )으로 회원 식별 후, PortOne SDK로 얻은 customerId/billingKey/카드메타를 저장/조회/삭제
- */
+@Slf4j
 @RestController
-@RequestMapping("/billing-keys")
 @RequiredArgsConstructor
+@RequestMapping("/billing-keys")
 public class PlanPaymentMethodController {
 
-    private final PlanPaymentProfileService profileSvc;
     private final PlanPaymentRepository paymentRepo;
-    private final MemberRepository memberRepo;
-    
-    private Long resolveMnum(HttpSession session) {
-        Object cached = session.getAttribute("mnum");
-        if (cached instanceof Long m) return m;
+    private final PlanPaymentProfileService profileSvc;
+    private final PlanPaymentGatewayService pgSvc;
 
-        Object sid = session.getAttribute("sid"); // 문자열 아이디
-        if (!(sid instanceof String mid)) return null;
-
-        var member = memberRepo.findByMid(mid).orElse(null);
-        if (member == null) return null;
-
-        Long mnum = member.getMnum();
-        session.setAttribute("mnum", mnum); // ✅ 이후 요청부터는 조회 없음
-        return mnum;
-    }
-    
-    /**
-     * 빌링키 등록/갱신
-     * 프론트에서 PortOne SDK로 카드 인증 완료 후 customerId, billingKey, 카드메타(pg/brand/bin/last4) 전달
-     */
-    @PostMapping
-    @Transactional
-    public ResponseEntity<?> register(HttpSession session, @RequestBody BillingKeyReq req) {
-        Long mnum = (Long) session.getAttribute("sid");
-        if (mnum == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
-        // 1) 고객 프로필 upsert (회원-mnum X PG customerId 1:1 유니크 보장)
-        PlanPaymentEntity pp = profileSvc.upsert(
-                mnum,
-                req.customerId(),
-                nullToEmpty(req.pg()),
-                nullToEmpty(req.brand()),
-                nullToEmpty(req.bin()),
-                nullToEmpty(req.last4())
-        );
-
-        // 2) 빌링키 저장/갱신
-        pp.setPayKey(req.billingKey());
-        // 필요 시 활성화 플래그가 있다면: pp.setActive(true);
-        paymentRepo.save(pp);
-
-        return ResponseEntity.ok(new BillingKeyRes(pp.getPayId(), pp.getPayCustomer(), maskLast4(pp.getPayLast4())));
-    }
-
-    /**
-     * 내 빌링키 목록 보기
-     */
+    // ===== 1) 카드 목록 (프런트는 배열 기대) =====
     @GetMapping("/list")
     public ResponseEntity<?> list(HttpSession session) {
-        Long mnum = resolveMnum(session);
-        if (mnum == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
-        var list = paymentRepo.findByMemberMnum(mnum).stream()
-            .map(pp -> new BillingKeyItem(
-                pp.getPayId(),
-                nullSafe(pp.getPayCustomer()),
-                nullSafe(pp.getPayPg()),
-                nullSafe(pp.getPayBrand()),
-                nullSafe(pp.getPayBin()),
-                maskLast4(pp.getPayLast4()),
-                pp.getPayKey() != null && !pp.getPayKey().isBlank()
-            ))
-            .toList();
-
-        return ResponseEntity.ok(list);
+        String mid = (String) session.getAttribute("sid");
+        if (!StringUtils.hasText(mid)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error","LOGIN_REQUIRED"));
+        }
+        var list = paymentRepo.findAllByMid(mid);
+        var arr = list.stream().map(PlanPaymentMethodController::toMap).toList();
+        return ResponseEntity.ok(arr);
     }
 
-
-    /**
-     * 빌링키 삭제 (주의: PG의 customer/billingKey 삭제 호출이 필요하면 profileSvc에 위임해서 함께 처리)
-     */
-    @DeleteMapping("/{payId}")
-    @Transactional
-    public ResponseEntity<?> delete(HttpSession session, @PathVariable Long payId) {
-        Long mnum = (Long) session.getAttribute("sid");
-        if (mnum == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
-        var pp = paymentRepo.findById(payId).orElse(null);
-        if (pp == null || !pp.getMember().getMnum().equals(mnum)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    // ===== 2) 카드 등록 (빌링키 저장) =====
+    // @Transactional 제거: 리포지토리 레벨에서 트랜잭션 수행 (UnexpectedRollback 회피)
+    @PostMapping(value="/register", consumes=MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> register(@RequestBody PlanPaymentRegisterReq req, HttpSession session) {
+        String mid = (String) session.getAttribute("sid");
+        if (!StringUtils.hasText(mid)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error","LOGIN_REQUIRED"));
         }
 
-        // 필요 시 PortOne에 customer/billingKey 삭제 API 호출 → profileSvc에 메서드 추가하여 처리
-        // profileSvc.deleteOnGateway(pp.getPayCustomer(), pp.getPayKey());
+        String billingKey = StringUtils.trimAllWhitespace(req.getBillingKey());
+        if (!StringUtils.hasText(billingKey)) {
+            return ResponseEntity.badRequest().body(Map.of("error","MISSING_BILLING_KEY"));
+        }
 
-        paymentRepo.delete(pp);
-        return ResponseEntity.noContent().build();
+        // 1) 선검증: 동일 payKey 존재 여부
+        var existingOpt = paymentRepo.findByPayKey(billingKey);
+        if (existingOpt.isPresent()) {
+            var existing = existingOpt.get();
+            if (!Objects.equals(existing.getMid(), mid)) {
+                // 타인 소유
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error","OWNED_BY_ANOTHER_USER"));
+            }
+            // 내 카드 → 메타 보강 후 OK
+            safeMergeMeta(existing, safeExtract(req.getRawJson()));
+            if (!StringUtils.hasText(existing.getPayRaw()) && StringUtils.hasText(req.getRawJson())) {
+                existing.setPayRaw(req.getRawJson());
+            }
+            try {
+                paymentRepo.save(existing);
+            } catch (Exception e) {
+                log.warn("update meta failed but keeping existing card. {}", e.toString());
+                // 메타 보강 실패해도 기존 등록은 유지하므로 OK
+            }
+            return ResponseEntity.ok("ALREADY_REGISTERED");
+        }
+
+        // 2) 복합 유니크 방지 (mid+key) — 제약 위반 사전 차단
+        if (paymentRepo.existsByMidAndPayKey(mid, billingKey)) {
+            return ResponseEntity.ok("ALREADY_REGISTERED");
+        }
+
+        // 3) 신규 저장 (메타/RAW 비어도 OK) + PAYCUSTOMER NOT NULL 충족
+        PlanCardMeta meta = safeExtract(req.getRawJson());
+
+        // PortOne customerId 확보 시도 (없으면 mid로 대체)
+        String customerId = null;
+        try {
+            // 필요 시 실제 customerId 확보 로직 연결 (존재할 경우)
+            // customerId = profileSvc.ensureCustomerId(mid);
+        } catch (Exception ignore) {}
+        if (!StringUtils.hasText(customerId)) {
+            customerId = mid; // 🔴 DB NOT NULL 충족을 위해 최소 mid 사용
+        }
+
+        PlanPaymentEntity e = PlanPaymentEntity.builder()
+                .mid(mid)
+                .payKey(billingKey)
+                .payCustomer(customerId)                // 🔴 핵심: NOT NULL 방지
+                .payCreatedAt(LocalDateTime.now())
+                .payRaw(req.getRawJson())
+                .build();
+
+        safeMergeMeta(e, meta);
+
+        try {
+            paymentRepo.save(e);
+            return ResponseEntity.ok(toMap(e));
+        } catch (DataIntegrityViolationException dup) {
+            String msg = String.valueOf(dup.getMostSpecificCause());
+            // 제약 위반 메시지에 따라 분기
+            if (msg != null && msg.contains("UK_PLANPAYMENT_MID_KEY")) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error","DUPLICATE_BILLING_KEY"));
+            }
+            if (msg != null && msg.contains("ORA-01400") && msg.contains("PAYCUSTOMER")) {
+                return ResponseEntity.badRequest().body(Map.of("error","MISSING_PAYCUSTOMER"));
+            }
+            log.warn("register constraint violation: {}", msg);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error","CONSTRAINT_VIOLATION"));
+        } catch (Exception ex) {
+            log.error("REGISTER FAIL mid={} key={} rawLen={} ex={}",
+                    mid, billingKey, (req.getRawJson()==null?0:req.getRawJson().length()), ex.toString());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error","INTERNAL_SERVER_ERROR"));
+        }
     }
 
-    // ===== DTOs =====
+    // ===== helpers =====
 
-    public record BillingKeyReq(
-            String customerId,
-            String billingKey,
-            String pg,      // 예: "toss-payments"
-            String brand,   // 예: "KB", "Hyundai"
-            String bin,     // 카드 BIN (앞 6)
-            String last4    // 카드 뒤 4
-    ) {}
-
-    public record BillingKeyRes(
-            Long payId,
-            String customerId,
-            String last4Masked
-    ) {}
-
-    public record BillingKeyItem(
-            Long payId,
-            String customerId,
-            String pg,
-            String brand,
-            String bin,
-            String last4Masked,
-            boolean hasBillingKey
-    ) {}
-
-    private static String nullToEmpty(String s) { return s == null ? "" : s; }
-    private static String maskLast4(String last4){
-        return (last4 == null || last4.isBlank()) ? "" : "****-****-****-" + last4;
+    private static Map<String,Object> toMap(PlanPaymentEntity e) {
+        Map<String,Object> m = new LinkedHashMap<>();
+        m.put("id", e.getPayId());
+        m.put("billingKey", e.getPayKey());
+        m.put("brand", e.getPayBrand());
+        m.put("bin", e.getPayBin());
+        m.put("last4", e.getPayLast4());
+        m.put("pg", e.getPayPg());
+        m.put("createdAt", e.getPayCreatedAt()==null? null : e.getPayCreatedAt().toString());
+        return m;
     }
-    
-    private static String nullSafe(String s){ return s == null ? "" : s; }
+
+    private PlanCardMeta safeExtract(String rawJson) {
+        try {
+            return pgSvc.extractCardMeta(rawJson);
+        } catch (Exception ex) {
+            log.warn("extractCardMeta failed, continue without meta: {}", ex.toString());
+            return new PlanCardMeta(null,null,null,null);
+        }
+    }
+
+    // ⚠️ PlanCardMeta 가 record 이므로 brand()/bin()/last4()/pg() 접근자 사용
+    private void safeMergeMeta(PlanPaymentEntity e, PlanCardMeta meta) {
+        if (meta == null) return;
+        if (!StringUtils.hasText(e.getPayBrand()) && StringUtils.hasText(meta.getBrand())) e.setPayBrand(meta.getBrand());
+        if (!StringUtils.hasText(e.getPayBin())   && StringUtils.hasText(meta.getBin()))   e.setPayBin(meta.getBin());
+        if (!StringUtils.hasText(e.getPayLast4()) && StringUtils.hasText(meta.getLast4())) e.setPayLast4(meta.getLast4());
+        if (!StringUtils.hasText(e.getPayPg())    && StringUtils.hasText(meta.getPg()))    e.setPayPg(meta.getPg());
+    }
 }

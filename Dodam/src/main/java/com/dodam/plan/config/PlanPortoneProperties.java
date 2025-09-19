@@ -3,15 +3,17 @@ package com.dodam.plan.config;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 
-@Getter
-@Setter
-@Configuration
-@ConfigurationProperties(prefix = "portone")
+@Getter @Setter
+@ConfigurationProperties(prefix = "portone") // application.properties의 portone.*
 public class PlanPortoneProperties {
-    private String apiKey;
-    private String secret;
     private String baseUrl;
-    private String storeId; // ⭐ v2에서 반드시 필요
+    private String v2Secret;
+    private String storeId;
+    private String paymentGetPrefix = "/payments/";
+    private String pgName;
+    private String channelKey;
+    private String currency = "KRW";
+
+    public String authHeader() { return "PortOne " + v2Secret; }
 }

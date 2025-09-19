@@ -1,27 +1,25 @@
-// src/main/java/com/dodam/plan/config/WebClientConfig.java
 package com.dodam.plan.config;
 
-import lombok.RequiredArgsConstructor;
-
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
-@RequiredArgsConstructor
 public class PlanWebClientConfig {
 
-    private final PlanPortoneProperties portone;
-
     @Bean
-    @Qualifier("portoneWebClient")
-    public WebClient portoneWebClient() {
+    public WebClient planWebClient(PlanPortoneProperties props) { // ✅ Qualifier 제거
+        // 필요 시 메시지 크기 늘리기
+        ExchangeStrategies strategies = ExchangeStrategies.builder()
+            .codecs(cfg -> cfg.defaultCodecs().maxInMemorySize(2 * 1024 * 1024))
+            .build();
+
         return WebClient.builder()
-                .baseUrl(portone.getBaseUrl())                 // https://api.portone.io
-                .defaultHeaders(h -> h.setBasicAuth(
-                        portone.getApiKey(), portone.getSecret() // v2 인증
-                ))
+                .baseUrl(props.getBaseUrl()) // 예: https://api.portone.io
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "PortOne " + props.getV2Secret())
+                .exchangeStrategies(strategies)
                 .build();
     }
 }
