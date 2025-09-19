@@ -16,12 +16,22 @@ public interface PlanPaymentGatewayService {
         String pid = "pay-" + System.currentTimeMillis();
         return payByBillingKey(pid, billingKey, amount, customerId);
     }
+    
+    PlanPayResult payByBillingKey(String paymentId, String billingKey, long amount, String currency,
+            String orderName, String storeId, String customerId, String channelKey);
 
     /** 결제전문(raw JSON)에서 카드 메타 추출 */
     PlanCardMeta extractCardMeta(String rawJson);
 
     /** 결제 상태 안전 조회 (예외 삼키고 UNKNOWN) */
     PlanLookupResult safeLookup(String paymentId);
+    
+    /** 결제 단건 조회 */
+    PlanLookupResult lookup(String paymentId);
+    
+    /* ===== 결과 타입 ===== */
+    record PayResult(String paymentId, String status, String raw) {}
+    record LookupResult(String paymentId, String status, String raw) {}
 
     /** 결제 상태 조회 */
     PlanPaymentLookupResult lookupPayment(String paymentId);

@@ -6,5 +6,6 @@ public record PlanPayResult(
         String paymentId,
         String receiptUrl,
         String failReason,
+        String status,
         String rawJson
 ) {}

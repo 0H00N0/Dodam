@@ -3,14 +3,13 @@ package com.dodam.plan.controller;
 
 import com.dodam.member.entity.MemberEntity;
 import com.dodam.member.repository.MemberRepository;
-
 import com.dodam.plan.Entity.*;
 import com.dodam.plan.dto.PlanSubscriptionStartReq;
 import com.dodam.plan.enums.PlanEnums.PiStatus;
 import com.dodam.plan.enums.PlanEnums.PmBillingMode;
 import com.dodam.plan.enums.PlanEnums.PmStatus;
 import com.dodam.plan.repository.*;
-
+import com.dodam.plan.service.PlanSubscriptionService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +38,9 @@ public class PlanSubscriptionController {
     private final PlanPaymentRepository paymentRepo;
     private final MemberRepository memberRepo;
 
+    private final PlanSubscriptionService subscriptionService;
+
+    /** 인보이스만 만들고 끝(기존 로직 유지) */
     @PostMapping(value = "/start", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Transactional
     public ResponseEntity<?> start(@RequestBody PlanSubscriptionStartReq req, HttpSession session) {
@@ -69,10 +71,10 @@ public class PlanSubscriptionController {
         PlanTermsEntity terms = termsRepo.findByPtermMonth(months)
                 .orElseThrow(() -> new IllegalStateException("해당 개월 약정이 없습니다. months=" + months));
 
-        // 2) 결제 모드 결정 (문자열)
+        // 2) 결제 모드 결정
         final String mode = (months == 1) ? "MONTHLY" : "PREPAID_TERM";
 
-        // 3) 가격 조회: 정확모드 우선 → 없으면 AUTO fallback 허용
+        // 3) 가격 조회
         PlanPriceEntity price = priceRepo
                 .findFirstByPlan_PlanIdAndPterm_PtermIdAndPpriceBilModeAndPpriceActiveTrue(
                         plan.getPlanId(), terms.getPtermId(), mode)
@@ -83,7 +85,7 @@ public class PlanSubscriptionController {
         final BigDecimal amount = price.getPpriceAmount();
         final String currency = StringUtils.hasText(price.getPpriceCurr()) ? price.getPpriceCurr() : "KRW";
 
-        // 4) PlanMember upsert (없으면 생성)
+        // 4) PlanMember upsert
         PlanMember pm = planMemberRepo.findByMember_Mid(mid).orElse(null);
         if (pm == null) {
             LocalDateTime now = LocalDateTime.now();
@@ -145,5 +147,31 @@ public class PlanSubscriptionController {
         body.put("start", inv.getPiStart());
         body.put("end", inv.getPiEnd());
         return ResponseEntity.ok(body);
+    }
+
+    /**
+     * ✅ (신규) 인보이스를 바로 빌링키로 결제 트리거하고, 폴링으로 확정까지 처리
+     *  - 로컬/샌드박스 환경에서 웹훅이 localhost로 못 들어오는 문제를 해결
+     */
+    @PostMapping(value = "/charge-and-confirm", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Transactional
+    public ResponseEntity<?> chargeAndConfirm(@RequestBody PlanSubscriptionStartReq req, HttpSession session) {
+        final String mid = (String) session.getAttribute("sid");
+        if (!StringUtils.hasText(mid)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "LOGIN_REQUIRED"));
+        }
+
+        try {
+            // 1) 인보이스 생성 or 재사용 (네 기존 /start 로직을 내부 메서드로 뽑거나, 여기서 재사용)
+            var result = subscriptionService.chargeAndConfirm(mid, req);
+            return ResponseEntity.ok(result); // result 안에 invoiceId, paymentId, status, receiptUrl 등
+        } catch (IllegalStateException ex) {
+            log.warn("[charge-and-confirm] {}", ex.getMessage(), ex);
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            log.error("[charge-and-confirm] unexpected", ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "INTERNAL_SERVER_ERROR"));
+        }
     }
 }
