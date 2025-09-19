@@ -123,14 +123,6 @@ spring:
     console:
       enabled: false
 
-logging:
-  level:
-    com.dodam.product: INFO
-    org.springframework.web: WARN
-    org.hibernate.SQL: WARN
-  file:
-    name: /var/log/dodam/product.log
-
 ---
 # 테스트 환경 프로파일
 spring:
