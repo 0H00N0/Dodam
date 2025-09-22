@@ -14,7 +14,7 @@ import com.dodam.admin.board.AdminNoticeEntity;
 import com.dodam.admin.board.AdminNoticeRepository;
 
 @Service
-@Profile("admin")
+//@Profile("admin")
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AdminNoticeService {
