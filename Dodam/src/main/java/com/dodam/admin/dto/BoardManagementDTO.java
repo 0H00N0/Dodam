@@ -1,6 +1,11 @@
 package com.dodam.admin.dto;
 
+import java.time.LocalDateTime;
+
 import com.dodam.board.entity.BoardCategoryEntity;
+import com.dodam.board.entity.BoardEntity;
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -41,5 +46,68 @@ public class BoardManagementDTO {
                     .name(entity.getBcname())
                     .build();
         }
+    }
+    /**
+     * 게시글 정보 응답 DTO
+     */
+    @Getter
+    @Builder
+    public static class PostResponse {
+        private Long id; // bnum
+        private String title; // btitle
+        private String authorId; // mid
+        private String authorNickname; // mnic
+        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")   // 추가
+        private LocalDateTime createdAt; // bdate
+
+        public static PostResponse fromEntity(BoardEntity entity) {
+            return PostResponse.builder()
+                    .id(entity.getBnum())
+                    .title(entity.getBtitle())
+                    .authorId(entity.getMid())
+                    .authorNickname(entity.getMnic())
+                    .createdAt(entity.getBdate())
+                    .build();
+        }
+    }
+    /**
+     * 게시글 상세 정보 응답 DTO
+     */
+    @Getter
+    @Builder
+    public static class PostDetailResponse {
+        private Long id;
+        private String title;
+        private String content; // 내용 추가
+        private String authorId;
+        private String authorNickname;
+        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")   // 추가
+        private LocalDateTime createdAt;
+        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")   // 추가
+        private LocalDateTime updatedAt; // 수정일 추가
+
+        public static PostDetailResponse fromEntity(BoardEntity entity) {
+            return PostDetailResponse.builder()
+                    .id(entity.getBnum())
+                    .title(entity.getBtitle())
+                    .content(entity.getBcontent())
+                    .authorId(entity.getMid())
+                    .authorNickname(entity.getMnic())
+                    .createdAt(entity.getBdate())
+                    .updatedAt(entity.getBedate())
+                    .build();
+        }
+    }
+
+    /**
+     * 게시글 생성을 위한 요청 DTO
+     */
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    public static class CreatePostRequest {
+        private Long categoryId; // 어느 게시판에 쓸지
+        private String title;
+        private String content;
     }
 }
