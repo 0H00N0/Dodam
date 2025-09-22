@@ -12,8 +12,8 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 */ 
 
 @SpringBootApplication(scanBasePackages = "com.dodam")
-@EnableJpaRepositories(basePackages = "com.dodam.board.repository")
-@EntityScan(basePackages = "com.dodam.board.entity")
+//@EnableJpaRepositories(basePackages = "com.dodam.board.repository")
+//@EntityScan(basePackages = "com.dodam.board.entity")
 public class BoardApplication {
     public static void main(String[] args) {
         SpringApplication.run(BoardApplication.class, args);
