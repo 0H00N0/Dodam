@@ -9,8 +9,9 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
  * 도담 Boards API 애플리케이션.
  * H2 메모리 DB + Spring Data JPA + Springdoc(OpenAPI).
  * Swagger UI: /swagger-ui.html
- */
+*/ 
 
+@SpringBootApplication(scanBasePackages = "com.dodam")
 @EnableJpaRepositories(basePackages = "com.dodam.board.repository")
 @EntityScan(basePackages = "com.dodam.board.entity")
 public class BoardApplication {
