@@ -51,7 +51,7 @@ public class RentEntity { //대여 테이블
     private String renShip;
 
     @Column(name = "overdue", nullable = true)
-    private Integer overDue;
+    private Integer overDue; //연체
 
     @Column(name = "extend")
     private Integer extendInfo;
