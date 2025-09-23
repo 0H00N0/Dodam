@@ -45,10 +45,13 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/member/**").permitAll()          // 회원가입/로그인 등
                 .requestMatchers("/webhooks/pg").permitAll()        // PG 웹훅
+                .requestMatchers("/payments/confirm").permitAll()
+                .requestMatchers("/pg/payments/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/pg/payments/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/pg/transactions/**").permitAll()
 
                 // ---- Plan 모듈 ----
+                .requestMatchers("/subscriptions/**").permitAll()
                 .requestMatchers("/payments/**").permitAll()        // 결제 REST 공개(필요 시 조정)
                 .requestMatchers("/billing-keys/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/billing-keys/confirm", "/billing-keys/register").permitAll()

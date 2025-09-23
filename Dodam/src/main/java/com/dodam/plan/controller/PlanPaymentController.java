@@ -83,16 +83,18 @@ public class PlanPaymentController {
 
         if (confirmImmediate) {
             var res = pgSvc.payByBillingKey(paymentId, billingKey, amount, customerId);
-            billingSvc.recordAttempt(inv.getPiId(),
+
+            Long targetInvoiceId = resolveTargetInvoiceId(inv.getPiId(), res.paymentId());
+            billingSvc.recordAttempt(targetInvoiceId,
                     res.success(), res.success()?null:res.failReason(),
                     res.paymentId(), res.receiptUrl(), res.rawJson());
 
             if (res.success()) {
                 inv.setPiStat(PiStatus.PAID);
-                return ResponseEntity.ok(Map.of("result","OK","status","PAID","paymentId",res.paymentId(),"invoiceId",invoiceId));
+                return ResponseEntity.ok(Map.of("result","OK","status","PAID","paymentId",res.paymentId(),"invoiceId",targetInvoiceId));
             } else {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                        "result","FAIL","reason",res.failReason(),"paymentId",res.paymentId(),"invoiceId",invoiceId));
+                        "result","FAIL","reason",res.failReason(),"paymentId",res.paymentId(),"invoiceId",targetInvoiceId));
             }
         } else {
             // 비동기 승인
@@ -100,10 +102,12 @@ public class PlanPaymentController {
                 try {
                     var r = pgSvc.payByBillingKey(paymentId, billingKey, amount, customerId);
 
+                    Long targetInvoiceId = resolveTargetInvoiceId(inv.getPiId(), r.paymentId());
+
                     if (!r.success() && "ACCEPTED".equalsIgnoreCase(r.failReason())) {
-                        billingSvc.recordAttempt(inv.getPiId(), false, "ACCEPTED", r.paymentId(), r.receiptUrl(), r.rawJson());
+                        billingSvc.recordAttempt(targetInvoiceId, false, "ACCEPTED", r.paymentId(), r.receiptUrl(), r.rawJson());
                     } else {
-                        billingSvc.recordAttempt(inv.getPiId(), r.success(), r.success()?null:r.failReason(),
+                        billingSvc.recordAttempt(targetInvoiceId, r.success(), r.success()?null:r.failReason(),
                                 r.paymentId(), r.receiptUrl(), r.rawJson());
                     }
 
@@ -114,11 +118,11 @@ public class PlanPaymentController {
                             var lookup = pgSvc.safeLookup(paymentId);
                             String st = String.valueOf(lookup.status()).toUpperCase();
                             if ("PAID".equals(st) || "SUCCEEDED".equals(st) || "SUCCESS".equals(st)) {
-                                billingSvc.recordAttempt(inv.getPiId(), true, null, paymentId, null, lookup.rawJson());
+                                billingSvc.recordAttempt(targetInvoiceId, true, null, paymentId, null, lookup.rawJson());
                                 paid = true; break;
                             }
                             if ("FAILED".equals(st) || "CANCELED".equals(st)) {
-                                billingSvc.recordAttempt(inv.getPiId(), false, "LOOKUP:"+st, paymentId, null, lookup.rawJson());
+                                billingSvc.recordAttempt(targetInvoiceId, false, "LOOKUP:"+st, paymentId, null, lookup.rawJson());
                                 break;
                             }
                         }
@@ -180,7 +184,7 @@ public class PlanPaymentController {
 
     @GetMapping("/{paymentId}/status")
     public ResponseEntity<?> status(@PathVariable("paymentId") String paymentId) {
-        var r = pgSvc.safeLookup(paymentId); // ★ 내부에서 invoiceId -> pattUid(transactionId) 변환 후 조회
+        var r = pgSvc.safeLookup(paymentId);
         return ResponseEntity.ok(Map.of(
             "paymentId", r.paymentId(),
             "status",    r.status(),
@@ -199,14 +203,22 @@ public class PlanPaymentController {
             return (v instanceof String s) ? s : null;
         } catch (Exception ignore) { return null; }
     }
-    
+
     @GetMapping("/{paymentId}")
     public ResponseEntity<?> getPaymentStatus(@PathVariable("paymentId") String paymentId) {
-        var r = pgSvc.safeLookup(paymentId); // ★ 여기서 invoice형(inv..) → provider UID 변환 처리
+        var r = pgSvc.safeLookup(paymentId);
         return ResponseEntity.ok(Map.of(
             "paymentId", r.paymentId(),
             "status",    r.status(),
             "raw",       r.rawJson()
         ));
+    }
+
+    /** paymentId의 오너 인보이스가 있으면 그쪽으로 기록을 몰아주기 */
+    private Long resolveTargetInvoiceId(Long defaultInvoiceId, String paymentId) {
+        if (!org.springframework.util.StringUtils.hasText(paymentId)) return defaultInvoiceId;
+        return invoiceRepo.findByPiUid(paymentId)
+                .map(inv -> inv.getPiId())
+                .orElse(defaultInvoiceId);
     }
 }
