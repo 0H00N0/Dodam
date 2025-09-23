@@ -22,5 +22,7 @@ public interface MemberRepository extends JpaRepository<MemberEntity, Long> {
 	//전화번호로 비밀번호 찾기
 	Optional<MemberEntity> findByMidAndMnameAndMtel(String mid, String mname, String mtel);
 
-
+	// mid조회
+	Optional<MemberEntity> findByMid(String mid); // ⬅️ 추가
+	
 }

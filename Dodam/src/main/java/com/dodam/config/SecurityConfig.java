@@ -41,6 +41,7 @@ public class SecurityConfig {
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/member/**").permitAll()      // 회원가입/로그인 등 공개
+                .requestMatchers("/delivery/**").authenticated()
                 .requestMatchers("/webhooks/pg").permitAll()    // PG 웹훅은 외부 호출 허용
                 .requestMatchers(HttpMethod.GET, "/pg/payments/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/pg/transactions/**").permitAll()
@@ -66,7 +67,8 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of(front, "http://127.0.0.1:3000"));
+        cfg.setAllowedOrigins(List.of(front, "http://127.0.0.1:3000",
+        		"http://192.168.219.102:3000"));
         cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
         cfg.setAllowCredentials(true);
