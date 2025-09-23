@@ -50,7 +50,8 @@ public class SecurityConfig {
                     "/static/**", "/favicon.ico",
                     "/oauth/**",              // 소셜 엔드포인트 허용
                     "/member/signup",         // 회원가입 허용
-                    "/member/loginForm"       // 로컬 로그인 허용
+                    "/member/loginForm",       // 로컬 로그인 허용
+                    "/products/**"				//상품관련 페이지 허용
                 ).permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // 프리플라이트 허용
                 .anyRequest().authenticated()
