@@ -10,6 +10,8 @@ import com.dodam.plan.enums.PlanEnums.PiStatus;
 import com.dodam.plan.repository.PlanAttemptRepository;
 import com.dodam.plan.repository.PlanInvoiceRepository;
 import com.dodam.plan.repository.PlanPaymentRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +20,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -29,9 +32,8 @@ public class PlanBillingService {
     private final PlanPaymentRepository paymentRepo;
     private final PlanPaymentGatewayService pgSvc;
 
-    /**
-     * 결제 시도 기록 + 인보이스 상태 전이(멱등 규칙) + 카드 메타 저장
-     */
+    private static final ObjectMapper OM = new ObjectMapper();
+
     @Transactional
     public void recordAttempt(Long invoiceId,
                               boolean success,
@@ -43,31 +45,28 @@ public class PlanBillingService {
         PlanInvoiceEntity inv = invoiceRepo.findById(invoiceId)
                 .orElseThrow(() -> new IllegalArgumentException("INVOICE_NOT_FOUND:" + invoiceId));
 
-        // 1) 시도 기록(항상 남김)
+        // 1) 시도 기록
         PlanAttemptEntity att = PlanAttemptEntity.builder()
                 .invoice(inv)
                 .pattResult(success ? PattResult.SUCCESS : PattResult.FAIL)
                 .pattFail(success ? null : failReason)
-                .pattUid(respUid)
+                .pattUid(respUid)   // provider payment id or orderId
                 .pattUrl(receiptUrl)
                 .pattResponse(respJson)
                 .build();
         attemptRepo.save(att);
 
-        // 2) 인보이스 기본 정보 갱신(멱등 키)
+        // 2) piUid 멱등 바인딩
         if (StringUtils.hasText(respUid)) {
-            // ✅ piUid는 한 번만/한 군데만 바인딩: 이미 다른 인보이스가 소유 중이면 스킵
             invoiceRepo.findByPiUid(respUid).ifPresentOrElse(owner -> {
                 if (!owner.getPiId().equals(invoiceId)) {
                     log.warn("[Billing] paymentId {} is already bound to invoice {}. skip binding to {}",
                             respUid, owner.getPiId(), invoiceId);
-                } // owner == inv 인 경우는 그대로 유지(덮어쓸 필요 없음)
-            }, () -> {
-                inv.setPiUid(respUid); // 최초 바인딩
-            });
+                }
+            }, () -> inv.setPiUid(respUid));
         }
 
-        // 3) 상태 전이 규칙
+        // 3) 상태 전이
         if (success) {
             inv.setPiStat(PiStatus.PAID);
             inv.setPiPaid(LocalDateTime.now());
@@ -83,36 +82,73 @@ public class PlanBillingService {
         }
         invoiceRepo.save(inv);
 
-     // 4) (중요) 카드 메타 저장 — 성공 확정일 때 rawJson에서 추출
-     // src/main/java/com/dodam/plan/service/PlanBillingService.java
-     // ...중략...
-     try {
-         PlanPaymentEntity payment = inv.getPlanMember() != null ? inv.getPlanMember().getPayment() : null;
-         if (success && payment != null && StringUtils.hasText(respJson)) {
-             PlanCardMeta meta = pgSvc.extractCardMeta(respJson);
-             if (meta != null) {
-                 log.info("[Billing] will save cardMeta paymentId={}, bin={}, brand={}, last4={}, pg={}",
-                         payment.getPayId(), meta.getBin(), meta.getBrand(), meta.getLast4(), meta.getPg());
+     // 4) 카드 메타 저장 (반드시 billingKey로 매칭된 카드에만)
+        try {
+            if (success && StringUtils.hasText(respJson)) {
+                String usedBillingKey = extractBillingKey(respJson);
 
-                 int updated = paymentRepo.updateCardMeta(
-                         payment.getPayId(),
-                         safe(meta.getBin()),
-                         safe(meta.getBrand()),
-                         safe(meta.getLast4()),
-                         safe(meta.getPg())
-                 );
-                 log.info("[Billing] cardMeta update rows={}", updated);
+                if (!StringUtils.hasText(usedBillingKey)) {
+                    log.info("[Billing] skip card meta: no billingKey in provider response (invoice={})", invoiceId);
+                    return;
+                }
 
-                 payment.setPayRaw(respJson); // 최근 raw 보관(선택)
-                 paymentRepo.save(payment);
-             }
-         }
-     } catch (Exception e) {
-         log.warn("[Billing] save card meta failed: {}", e.toString());
-     }
+                Optional<PlanPaymentEntity> byKey = paymentRepo.findByPayKey(usedBillingKey);
+                if (byKey.isEmpty()) {
+                    log.warn("[Billing] skip card meta: payment not found by billingKey={} (invoice={})",
+                            usedBillingKey, invoiceId);
+                    return;
+                }
+
+                PlanPaymentEntity targetPayment = byKey.get();
+
+                PlanCardMeta meta = pgSvc.extractCardMeta(respJson);
+                boolean hasAny = meta != null && (
+                        StringUtils.hasText(meta.getBin()) ||
+                        StringUtils.hasText(meta.getBrand()) ||
+                        StringUtils.hasText(meta.getLast4()) ||
+                        StringUtils.hasText(meta.getPg())
+                );
+                if (hasAny) {
+                    int updated = paymentRepo.updateCardMeta(
+                            targetPayment.getPayId(),
+                            safe(meta.getBin()),
+                            safe(meta.getBrand()),
+                            safe(meta.getLast4()),
+                            safe(meta.getPg())
+                    );
+                    log.info("[Billing] cardMeta update rows={} (payId={}, bk={})",
+                            updated, targetPayment.getPayId(), targetPayment.getPayKey());
+                } else {
+                    log.info("[Billing] cardMeta skipped (no fields) for paymentId={}", targetPayment.getPayId());
+                }
+
+                targetPayment.setPayRaw(respJson);
+                paymentRepo.save(targetPayment);
+            }
+        } catch (Exception e) {
+            log.warn("[Billing] save card meta failed: {}", e.toString(), e);
+        }
     }
 
-    private String safe(String v) {
-        return (v == null || v.isBlank()) ? null : v;
+    /** raw JSON 에서 billingKey 추출 (items[0] / payment / root 모두 지원) */
+    private String extractBillingKey(String raw) {
+        try {
+            JsonNode root = OM.readTree(raw);
+            // items[0].billingKey
+            if (root.has("items") && root.get("items").isArray() && root.get("items").size() > 0) {
+                String v = n(root.get("items").get(0).path("billingKey").asText(null));
+                if (StringUtils.hasText(v)) return v;
+            }
+            // payment.billingKey
+            String v2 = n(root.path("payment").path("billingKey").asText(null));
+            if (StringUtils.hasText(v2)) return v2;
+            // root.billingKey
+            String v3 = n(root.path("billingKey").asText(null));
+            if (StringUtils.hasText(v3)) return v3;
+        } catch (Exception ignore) { }
+        return null;
     }
+
+    private String safe(String v) { return (v == null || v.isBlank()) ? null : v; }
+    private static String n(String s){ return (s==null || s.isBlank()) ? null : s; }
 }

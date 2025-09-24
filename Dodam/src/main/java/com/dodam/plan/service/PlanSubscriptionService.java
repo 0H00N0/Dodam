@@ -13,11 +13,11 @@ public interface PlanSubscriptionService {
     /**
      * (빌링키 즉시결제 → 폴링으로 확정)까지 한 번에 처리
      * @param invoiceId 인보이스 ID (PENDING 상태)
-     * @param mid 세션의 회원 ID (mid)
+     * @param mid       회원 ID
      * @param termMonths 1,3,6,12 등
-     * @return 결과 payload (status: PAID/FAILED/TIMEOUT, paymentId, receiptUrl 등)
      */
     Map<String, Object> chargeByBillingKeyAndConfirm(Long invoiceId, String mid, int termMonths);
-    
-    Map<String, Object> chargeAndConfirm(String mid, PlanSubscriptionStartReq req); // 결과 Map으로 응답
+
+    /** 플랜코드/개월수로 인보이스 생성(or 재사용) 후 결제+확정 */
+    Map<String, Object> chargeAndConfirm(String mid, PlanSubscriptionStartReq req);
 }

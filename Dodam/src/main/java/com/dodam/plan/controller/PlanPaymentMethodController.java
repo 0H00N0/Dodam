@@ -68,55 +68,51 @@ public class PlanPaymentMethodController {
             return ResponseEntity.badRequest().body(Map.of("error","MISSING_BILLING_KEY"));
         }
 
-        // ⛔️ 중간 토큰(billingIssueToken)이 실수로 넘어오는 것을 차단 (중복 카드 방지의 핵심)
         if (billingKey.startsWith("billing-issue-token")) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "TEMP_TOKEN_NOT_ALLOWED",
                     "message", "billingIssueToken은 등록할 수 없습니다. confirm 후 발급된 billingKey만 허용됩니다."
             ));
         }
-
-        // (선택 강화) 포맷을 엄격히: 실제 발급 키 prefix만 허용
         if (!billingKey.startsWith("billing-key-")) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "INVALID_BILLING_KEY_FORMAT"
             ));
         }
 
-        // 0) PortOne 원본(rawJson)에서 1차 추출 (없을 수 있음)
         PlanCardMeta meta = safeExtract(req.getRawJson());
 
-        // 0-1) confirm에서 세션에 캐시해 둔 메타로 보강 (rawJson에 없을 때 대비)
         @SuppressWarnings("unchecked")
         Map<String,String> cached = (Map<String,String>) session.getAttribute(sessionKeyFor(billingKey));
         if (cached != null) {
-            safeMergeMetaMap(meta, cached); // PlanCardMeta에 값이 비어있으면 보강
+            safeMergeMetaMap(meta, cached);
         }
 
-        // 1) 멱등/소유자 검증
         var existingOpt = paymentRepo.findByPayKey(billingKey);
         if (existingOpt.isPresent()) {
             var existing = existingOpt.get();
             if (!Objects.equals(existing.getMid(), mid)) {
-                // 다른 사용자의 카드키면 409
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error","OWNED_BY_ANOTHER_USER"));
             }
-            // 같은 사용자면 메타 병합 후 OK (멱등)
             safeMergeMeta(existing, meta);
             if (!StringUtils.hasText(existing.getPayRaw()) && StringUtils.hasText(req.getRawJson())) {
                 existing.setPayRaw(req.getRawJson());
             }
             try {
                 paymentRepo.save(existing);
-                session.removeAttribute(sessionKeyFor(billingKey)); // 캐시 삭제
-                return ResponseEntity.ok(toMap(existing)); // ✅ 멱등 성공
+                session.removeAttribute(sessionKeyFor(billingKey));
+
+                // ✅ 등록 직후 카드 메타 업데이트 시도
+                tryUpdateCardMeta(existing.getPayId(), billingKey);
+
+                return ResponseEntity.ok(toMap(existing));
             } catch (Exception e) {
                 log.error("REGISTER(merge) FAIL mid={} key={} ex={}", mid, billingKey, e.toString());
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error","INTERNAL_SERVER_ERROR"));
             }
         }
 
-        // 2) 신규 저장
+        // 신규 저장
         String customerId = Optional.ofNullable(meta.getCustomerId()).filter(StringUtils::hasText).orElse(mid);
         var e = PlanPaymentEntity.builder()
                 .mid(mid)
@@ -129,14 +125,18 @@ public class PlanPaymentMethodController {
 
         try {
             paymentRepo.save(e);
-            session.removeAttribute(sessionKeyFor(billingKey)); // 캐시 삭제
+            session.removeAttribute(sessionKeyFor(billingKey));
+
+            // ✅ 신규 저장 직후 카드 메타 업데이트 시도
+            tryUpdateCardMeta(e.getPayId(), billingKey);
+
             return ResponseEntity.ok(toMap(e));
         } catch (DataIntegrityViolationException dup) {
             String msg = String.valueOf(dup.getMostSpecificCause());
             if (msg != null && msg.contains("UK_PLANPAYMENT_MID_KEY")) {
                 var again = paymentRepo.findByPayKey(billingKey).orElse(null);
                 if (again != null && Objects.equals(again.getMid(), mid)) {
-                    return ResponseEntity.ok(toMap(again)); // ✅ 멱등 우회
+                    return ResponseEntity.ok(toMap(again));
                 }
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error","DUPLICATE_BILLING_KEY"));
             }
@@ -151,6 +151,7 @@ public class PlanPaymentMethodController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error","INTERNAL_SERVER_ERROR"));
         }
     }
+
 
     /* -----------------------------------------------------------
      * confirm : 200/409 모두 ISSUED로 정규화, 메타 세션 캐시
@@ -212,7 +213,15 @@ public class PlanPaymentMethodController {
         } catch (Exception ex) {
             log.warn("extractCardMeta failed, continue without meta: {}", ex.toString());
             // (프로젝트의 record/생성자 시그니처에 맞추어 초기값 전달)
-            return new PlanCardMeta(null, null, null, null, false, null);
+            return new PlanCardMeta(
+            	    null, // billingKey
+            	    null, // brand
+            	    null, // bin
+            	    null, // last4
+            	    null, // pg
+            	    false,// issued
+            	    null  // customerId
+            	);
         }
     }
 
@@ -263,5 +272,61 @@ public class PlanPaymentMethodController {
     @Data
     public static class ConfirmReq {
         private String billingIssueToken;
+    }
+    
+    /* -----------------------------------------------------------
+     * 카드 메타 즉시 업데이트 helper
+     * ----------------------------------------------------------- */
+    private void tryUpdateCardMeta(Long payId, String billingKey) {
+        try {
+            // PortOne 조회
+            var look = portoneClient.lookupPayment(billingKey);
+            PlanCardMeta cardMeta = pgSvc.extractCardMeta(look.raw());
+            if (cardMeta != null) {
+                paymentRepo.updateCardMeta(
+                        payId,
+                        cardMeta.getBin(),
+                        cardMeta.getBrand(),
+                        cardMeta.getLast4(),
+                        cardMeta.getPg()
+                );
+                log.info("[REGISTER] cardMeta updated immediately for payId={} bin={} brand={} last4={} pg={}",
+                        payId, cardMeta.getBin(), cardMeta.getBrand(), cardMeta.getLast4(), cardMeta.getPg());
+            }
+        } catch (Exception e) {
+            log.warn("[REGISTER] cardMeta update skipped for payId={}, ex={}", payId, e.toString());
+        }
+    }
+    
+ // 빌링키 발급 confirm 이후 저장하는 지점 예시
+    private void saveIssuedCardMeta(String rawJson, String fallbackPayIdOrNull) {
+        // 1) 메타 파싱
+        PlanCardMeta meta = pgSvc.extractCardMeta(rawJson);
+
+        // 2) billingKey 우선
+        if (meta != null && StringUtils.hasText(meta.getBillingKey())) {
+            int rows = paymentRepo.updateCardMetaByKey(
+                    meta.getBillingKey(),
+                    (StringUtils.hasText(meta.getBin())   ? meta.getBin()   : null),
+                    (StringUtils.hasText(meta.getBrand()) ? meta.getBrand() : null),
+                    (StringUtils.hasText(meta.getLast4()) ? meta.getLast4() : null),
+                    (StringUtils.hasText(meta.getPg())    ? meta.getPg()    : null)
+            );
+            log.info("[PMCtrl] update by key rows={}, key={}", rows, meta.getBillingKey());
+            if (rows > 0) return;
+        }
+
+        // 3) fallback: payId 로 시도 (상황에 따라 없을 수 있음)
+        if (StringUtils.hasText(fallbackPayIdOrNull)) {
+            Long payId = Long.valueOf(fallbackPayIdOrNull);
+            int rows = paymentRepo.updateCardMeta(
+                    payId,
+                    (StringUtils.hasText(meta.getBin())   ? meta.getBin()   : null),
+                    (StringUtils.hasText(meta.getBrand()) ? meta.getBrand() : null),
+                    (StringUtils.hasText(meta.getLast4()) ? meta.getLast4() : null),
+                    (StringUtils.hasText(meta.getPg())    ? meta.getPg()    : null)
+            );
+            log.info("[PMCtrl] update by id rows={}, payId={}", rows, payId);
+        }
     }
 }

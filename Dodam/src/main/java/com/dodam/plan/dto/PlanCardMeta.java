@@ -6,6 +6,7 @@ import lombok.*;
 @Getter @Setter @NoArgsConstructor
 @AllArgsConstructor
 public class PlanCardMeta {
+	private String billingKey; // ★ 추가: 이 카드가 어떤 billingKey 인지
     private String brand;      // 카드 브랜드
     private String bin;        // 카드 BIN
     private String last4;      // 끝 4자리

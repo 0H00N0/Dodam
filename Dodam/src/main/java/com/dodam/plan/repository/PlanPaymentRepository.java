@@ -1,8 +1,8 @@
 // src/main/java/com/dodam/plan/repository/PlanPaymentRepository.java
 package com.dodam.plan.repository;
 
-import com.dodam.member.entity.MemberEntity;                 // 프로젝트 경로 유지
-import com.dodam.plan.Entity.PlanPaymentEntity;              // ⚠ 실제 패키지/대소문자에 맞춤 (Entity가 대문자면 그대로)
+import com.dodam.member.entity.MemberEntity;
+import com.dodam.plan.Entity.PlanPaymentEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -14,74 +14,28 @@ import java.util.Optional;
 
 public interface PlanPaymentRepository extends JpaRepository<PlanPaymentEntity, Long> {
 
-    /* ─────────────────────
-     * mid(문자열 컬럼) 기반 파생 쿼리 (JPQL @Query 없이 안전)
-     * ───────────────────── */
-	
-	List<PlanPaymentEntity> findAllByMid(String mid);
-
+    List<PlanPaymentEntity> findAllByMid(String mid);
     boolean existsByMidAndPayKey(String mid, String payKey);
-
-    // 정렬된 전체 목록
     List<PlanPaymentEntity> findByMidOrderByPayIdDesc(String mid);
-
-    // 네 코드에서 사용 중인 "Top" 파생 쿼리 2종 모두 지원
     Optional<PlanPaymentEntity> findTop1ByMidOrderByPayIdDesc(String mid);
     Optional<PlanPaymentEntity> findTopByMidOrderByPayIdDesc(String mid);
 
-    // 키로 단건 조회
+    // ✅ 파생쿼리로 변경 (이전 @Query/@Param로 500 떨어지던 부분 방지)
     Optional<PlanPaymentEntity> findByPayKey(String payKey);
 
     Optional<PlanPaymentEntity> findByMidAndPayKey(String mid, String payKey);
-
-    // 과거 시그니처 호환: MemberEntity + payKey
     default Optional<PlanPaymentEntity> findByMemberAndPayKey(MemberEntity member, String payKey) {
-        // MemberEntity의 아이디 게터명이 mid가 아니라면 getMid()를 실제 게터로 바꾸세요.
         return findByMidAndPayKey(member.getMid(), payKey);
     }
-
-    // ✅ 네 코드 호환용: findByMemberMidAndPayKey(...)가 필요한 곳이 있으므로, 안전 위임 제공
     default Optional<PlanPaymentEntity> findByMemberMidAndPayKey(String mid, String payKey) {
         return findByMidAndPayKey(mid, payKey);
     }
-
-    // ✅ 네 코드 호환용: findByMid(...) 호출을 그대로 살리기 위해 위임 제공
     default List<PlanPaymentEntity> findByMid(String mid) {
         return findByMidOrderByPayIdDesc(mid);
     }
 
-    /**
-     * 컨트롤러/서비스가 호출하는 “기본 결제수단” 통일 API.
-     * - defaultYn = 'Y' 또는 isDefault = true 를 우선 반환
-     * - 없으면 최신 카드(리스트 첫 번째) 반환
-     */
-    default Optional<PlanPaymentEntity> findDefaultByMember(String mid) {
-        List<PlanPaymentEntity> list = findByMidOrderByPayIdDesc(mid);
-        if (list == null || list.isEmpty()) return Optional.empty();
-
-        // 1) defaultYn = 'Y' 우선
-        for (PlanPaymentEntity p : list) {
-            try {
-                var m = PlanPaymentEntity.class.getMethod("getDefaultYn");
-                Object v = m.invoke(p);
-                if (v instanceof String s && "Y".equalsIgnoreCase(s)) return Optional.of(p);
-            } catch (Throwable ignore) { /* 필드/메서드 없을 수 있음 */ }
-        }
-
-        // 2) isDefault = true
-        for (PlanPaymentEntity p : list) {
-            try {
-                var m = PlanPaymentEntity.class.getMethod("isDefault");
-                Object v = m.invoke(p);
-                if (v instanceof Boolean b && b) return Optional.of(p);
-            } catch (Throwable ignore) { /* 필드/메서드 없을 수 있음 */ }
-        }
-
-        // 3) fallback: 가장 최근
-        return Optional.of(list.get(0));
-    }
-    
-    @Modifying
+    // ★ ID(=payId) 기준 갱신 — 기존 호출부 호환
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("""
       update PlanPaymentEntity p
@@ -96,4 +50,45 @@ public interface PlanPaymentRepository extends JpaRepository<PlanPaymentEntity, 
                        @Param("brand") String brand,
                        @Param("last4") String last4,
                        @Param("pg")    String pg);
+
+    // ★ billingKey(=payKey) 기준 갱신 — 빌링키만 있을 때 사용
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("""
+      update PlanPaymentEntity p
+      set p.payBin   = coalesce(:bin,   p.payBin),
+          p.payBrand = coalesce(:brand, p.payBrand),
+          p.payLast4 = coalesce(:last4, p.payLast4),
+          p.payPg    = coalesce(:pg,    p.payPg)
+      where p.payKey = :payKey
+    """)
+    int updateCardMetaByKey(@Param("payKey") String payKey,
+                            @Param("bin")   String bin,
+                            @Param("brand") String brand,
+                            @Param("last4") String last4,
+                            @Param("pg")    String pg);
+    
+    default Optional<PlanPaymentEntity> findDefaultByMember(String mid) {
+        List<PlanPaymentEntity> list = findByMidOrderByPayIdDesc(mid);
+        if (list == null || list.isEmpty()) return java.util.Optional.empty();
+
+        // 1) defaultYn = 'Y' 우선
+        for (var p : list) {
+            try {
+                var m = PlanPaymentEntity.class.getMethod("getDefaultYn");
+                Object v = m.invoke(p);
+                if (v instanceof String s && "Y".equalsIgnoreCase(s)) return java.util.Optional.of(p);
+            } catch (Throwable ignore) { }
+        }
+        // 2) isDefault = true
+        for (var p : list) {
+            try {
+                var m = PlanPaymentEntity.class.getMethod("isDefault");
+                Object v = m.invoke(p);
+                if (v instanceof Boolean b && b) return java.util.Optional.of(p);
+            } catch (Throwable ignore) { }
+        }
+        // 3) fallback: 최신 1건
+        return Optional.of(list.get(0));
+    }
 }
