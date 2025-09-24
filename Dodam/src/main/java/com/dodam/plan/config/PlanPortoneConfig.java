@@ -1,47 +1,50 @@
-// src/main/java/com/dodam/plan/config/PortoneConfig.java
+// src/main/java/com/dodam/plan/config/PlanPortoneConfig.java
 package com.dodam.plan.config;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
+import java.time.Duration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
-
-import jakarta.annotation.PostConstruct;
+import reactor.netty.http.client.HttpClient;
 
 @Slf4j
 @Configuration
-@RequiredArgsConstructor
 @EnableConfigurationProperties(PlanPortoneProperties.class)
 public class PlanPortoneConfig {
 
-	private final PlanPortoneProperties props;
+    @Bean("portoneWebClient")
+    public WebClient portoneWebClient(PlanPortoneProperties props) {
+        HttpClient hc = HttpClient.create()
+            .responseTimeout(Duration.ofSeconds(60)) // confirm 여유
+            .option(io.netty.channel.ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
+            .doOnConnected(conn -> conn
+                .addHandlerLast(new io.netty.handler.timeout.ReadTimeoutHandler(60))
+                .addHandlerLast(new io.netty.handler.timeout.WriteTimeoutHandler(60)));
 
-	@Bean
-	@Qualifier("portoneWebClient")
-	public WebClient portoneWebClient(PlanPortoneProperties props) {
-		return WebClient.builder().defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-				.defaultHeader(HttpHeaders.AUTHORIZATION, "PortOne " + props.getV2Secret())
-				.baseUrl(props.getBaseUrl() != null && !props.getBaseUrl().isBlank() ? props.getBaseUrl()
-						: "https://api.portone.io")
-				.filter((request, next) -> {
-					// 민감정보 노출 금지: 길이와 prefix만 출력
-					String auth = request.headers().getFirst(HttpHeaders.AUTHORIZATION);
-					String marker = (auth != null && auth.startsWith("PortOne ")) ? "SET" : "MISSING";
-					log.info("[PortOne] {} {}  Authorization={}", request.method(), request.url(), marker);
-					return next.exchange(request);
-				}).build();
-	}
+        return WebClient.builder()
+            .baseUrl(props.getBaseUrl())
+            .defaultHeader("Authorization", props.authHeader()) // ✅ V2 인증 고정
+            .defaultHeader("Content-Type", "application/json")
+            .clientConnector(new ReactorClientHttpConnector(hc))
+            .filter(logRequest())
+            .filter(logResponse())
+            .build();
+    }
 
-	@PostConstruct
-	public void validate() {
-		if (props.getV2Secret() == null || props.getV2Secret().isBlank()) {
-			throw new IllegalStateException("portone.v2Secret is not set");
-		}
-	}
+    private ExchangeFilterFunction logRequest() {
+        return ExchangeFilterFunction.ofRequestProcessor(req -> {
+            log.info("[PortOne] {} {}  Authorization=PortOne ****", req.method(), req.url());
+            return reactor.core.publisher.Mono.just(req);
+        });
+    }
+    private ExchangeFilterFunction logResponse() {
+        return ExchangeFilterFunction.ofResponseProcessor(resp -> {
+            log.debug("[PortOne] Response {} {}", resp.rawStatusCode(), resp.headers().asHttpHeaders());
+            return reactor.core.publisher.Mono.just(resp);
+        });
+    }
 }

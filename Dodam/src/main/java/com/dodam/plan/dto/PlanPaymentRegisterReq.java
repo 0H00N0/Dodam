@@ -1,6 +1,7 @@
 // src/main/java/com/dodam/plan/dto/PlanPaymentRegisterReq.java
 package com.dodam.plan.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 @Data
@@ -12,6 +13,7 @@ public class PlanPaymentRegisterReq {
     private String customerId;
 
     // 빌링키 및 카드 메타
+    @NotBlank(message = "billingKey는 필수입니다.")
     private String billingKey;
     private String pg;     // 예: TOSSPAYMENTS, KCP 등
     private String brand;  // 예: 삼성, 현대, BC...
@@ -19,6 +21,7 @@ public class PlanPaymentRegisterReq {
     private String last4;  // 끝 4자리
 
     // 원본 JSON (있으면 저장/분석)
+    @NotBlank(message = "rawJson은 필수입니다.")
     private String rawJson;
 
     // (선택) 리다이렉트/조회 관련 보조 필드

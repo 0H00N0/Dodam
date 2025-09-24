@@ -76,4 +76,7 @@ public interface PlanPriceRepository extends JpaRepository<PlanPriceEntity, Long
     """, nativeQuery = true)
     Optional<PlanPriceEntity> findByPlanIdAndMonths(@Param("planId") Long planId,
                                                     @Param("months") int months);
+    
+    @Query("select p.pterm.ptermId from PlanPriceEntity p where p.ppriceId = :priceId")
+    Long findTermIdByPriceId(@Param("priceId") Long priceId);
 }
