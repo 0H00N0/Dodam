@@ -53,19 +53,11 @@ public class MemberController {
         return ResponseEntity.ok(Map.of("message", "logout ok"));
     }
 
-    // 회원정보 조회
-    @GetMapping("/api/member/me")
-    public ResponseEntity<?> getProfile(HttpSession session) {
-        String sid = (String) session.getAttribute("sid");
-        if (sid == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
-        }
-        MemberDTO member = memberService.me(sid);
-        return ResponseEntity.ok(member);
-    }
-
-    // 회원정보 수정
-    @PutMapping("/api/member/me")
+    
+ 
+    
+    //회원정보 수정
+    @PutMapping("/updateProfile")
     public ResponseEntity<?> updateProfile(@RequestBody MemberDTO dto, HttpSession session) {
         String sid = (String) session.getAttribute("sid");
         if (sid == null) {
@@ -101,7 +93,8 @@ public class MemberController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "unauthenticated"));
         }
-        return ResponseEntity.ok(memberService.me(sid));
+        MemberDTO dto = memberService.findByMid(sid); // 아래 서비스 메서드 추가
+        return ResponseEntity.ok(dto);
     }
     
  // 이름+전화번호로 아이디 찾기
@@ -159,5 +152,5 @@ public class MemberController {
     public ResponseEntity<?> changePwDirect(@RequestBody ChangePwDTO dto) {
         memberService.changePwDirect(dto.getMid(), dto.getNewPw());
         return ResponseEntity.ok(Map.of("message", "비밀번호가 성공적으로 변경되었습니다."));
-    }
+    } 
 }

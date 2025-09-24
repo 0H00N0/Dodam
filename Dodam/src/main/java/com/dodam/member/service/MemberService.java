@@ -1,13 +1,18 @@
 package com.dodam.member.service;
 
 import com.dodam.member.dto.ChangePwDTO;
+import com.dodam.member.dto.ChildDTO;
 import com.dodam.member.dto.MemberDTO;
+import com.dodam.member.entity.ChildEntity;
 import com.dodam.member.entity.LoginmethodEntity;
 import com.dodam.member.entity.MemberEntity;
 import com.dodam.member.entity.MemtypeEntity;
+import com.dodam.member.repository.ChildRepository;
 import com.dodam.member.repository.LoginmethodRepository;
 import com.dodam.member.repository.MemberRepository;
 import com.dodam.member.repository.MemtypeRepository;
+
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
@@ -27,7 +32,10 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final LoginmethodRepository loginmethodRepository;
     private final MemtypeRepository memtypeRepository;
-    private final PasswordEncoder passwordEncoder;
+
+    private final PasswordEncoder passwordEncoder; 
+    private final ChildRepository childRepository;
+
 
     private LoginmethodEntity getOrCreateLocal() {
         return loginmethodRepository.findByLmtype("LOCAL")
@@ -55,12 +63,28 @@ public class MemberService {
                 .mid(dto.getMid())
                 .mpw(encoded)
                 .mname(dto.getMname())
+                .mpost(dto.getMpost())
+                .maddr(dto.getMaddr())
+                .memail(dto.getMemail())
+                .mbirth(dto.getMbirth())
+                .mnic(dto.getMnic())
                 .mtel(dto.getMtel())
                 .loginmethod(getOrCreateLocal())
                 .memtype(getOrCreateDefault())
                 .build();
 
         memberRepository.save(e);
+        //자녀정보 저장
+        if (dto.getChildren() != null && !dto.getChildren().isEmpty()) {
+            for (ChildDTO c : dto.getChildren()) {
+                ChildEntity child = ChildEntity.builder()
+                        .chname(c.getChname())
+                        .chbirth(c.getChbirth())
+                        .member(e)
+                        .build();
+                childRepository.save(child);
+            }
+        }
     }
 
     public void signupAdmin(MemberDTO dto, String memtype) {
@@ -109,6 +133,7 @@ public class MemberService {
         return s == null || s.isBlank(); 
     }
 
+    @Transactional
     public void updateProfile(String sid, MemberDTO dto) {
         MemberEntity entity = memberRepository.findByMid(sid)
                 .orElseThrow(() -> new RuntimeException("회원 없음"));
@@ -116,7 +141,25 @@ public class MemberService {
         entity.setMtel(dto.getMtel());
         entity.setMaddr(dto.getMaddr());
         entity.setMnic(dto.getMnic());
+        entity.setMpost(dto.getMpost());
+        entity.setMname(dto.getMname());
+        entity.setMbirth(dto.getMbirth());
         memberRepository.save(entity);
+
+        //자녀정보 삭제 후 정보 재삽입
+        childRepository.deleteByMember(entity);
+        if (dto.getChildren() != null) {
+            for (ChildDTO c : dto.getChildren()) {
+                ChildEntity child = ChildEntity.builder()
+                    .chname(c.getChname())
+                    .chbirth(c.getChbirth())
+                    .member(entity)
+                    .build();
+                childRepository.save(child);
+            }
+        }
+        
+
     }
 
     public void changePw(String sid, ChangePwDTO dto) {
@@ -189,27 +232,13 @@ public class MemberService {
         memberRepository.save(entity);
     }
     
-    /*
-    // (선택) 기존 평문 비번 마이그레이션 예시:
-    public MemberDTO loginWithSoftMigration(String mid, String rawPw) {
+    public MemberDTO findByMid(String mid) {
         var e = memberRepository.findByMid(mid)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid id/pw"));
 
-        String stored = e.getMpw();
-        boolean looksHashed = stored != null && stored.startsWith("$2"); // BCrypt
-        boolean ok;
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "no member"));
 
-        if (looksHashed) {
-            ok = passwordEncoder.matches(rawPw, stored);
-        } else {
-            ok = rawPw.equals(stored); // 기존 평문 비교
-            if (ok) {
-                e.setMpw(passwordEncoder.encode(rawPw));
-                memberRepository.save(e);
-            }
-        }
-        if (!ok) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid id/pw");
         return new MemberDTO(e);
     }
-    */
+
+    
 }
