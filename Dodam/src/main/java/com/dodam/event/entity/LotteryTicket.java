@@ -3,12 +3,13 @@ package com.dodam.event.entity;
 import java.time.LocalDateTime;
 
 import com.dodam.member.entity.MemberEntity;
+import com.dodam.member.entity.MemtypeEntity;
 
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "LotteryTicket")
+@Table(name = "lotteryTicket")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,33 +18,35 @@ import lombok.*;
 public class LotteryTicket {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "lottery_ticket_seq")
+    @SequenceGenerator(name = "lottery_ticket_seq", sequenceName = "LOTTERY_TICKET_SEQ", allocationSize = 1)
     @Column(name = "lotNum", nullable = false)
-    private Long lotNum;   // PK: 추첨권 고유번호
+    private Long lotNum;   // 추첨권 번호 (PK)
 
     @Column(name = "lotCount", nullable = false)
-    private Integer lotCount = 0;   // 보유 개수 (default 0)
+    private Integer lotCount;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "mnum", nullable = false)
-    private MemberEntity member;   // FK: Member 참조
+    private MemberEntity member;
 
-    @Column(name = "lmNum", nullable = false)
-    private Long lmNum;   // FK: LoginMethod 참조
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mtnum", nullable = false)
+    private MemtypeEntity memtype;
 
-    @Column(name = "mtNum", nullable = false)
-    private Long mtNum;   // FK: Memtype 참조
-
-    @ManyToOne
+    // ✅ FK 매핑 (추첨권 종류)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lotTypeNum", nullable = false)
-    private LotteryTicketType ticketType;   // FK: 추첨권 종류 참조
+    private LotteryTicketType lotteryTicketType;
 
     @Column(name = "issuedAt", nullable = false)
-    private LocalDateTime issuedAt;   // 발급 시각
+    private LocalDateTime issuedAt;
 
     @Column(name = "usedAt")
-    private LocalDateTime usedAt;   // 사용 시각
+    private LocalDateTime usedAt;
 
     @Column(name = "status", nullable = false)
-    private Integer status = 0;   // 0=미사용, 1=사용, 2=만료
+    private Integer status;  // 0=미사용, 1=사용, 2=만료
 }
+
 

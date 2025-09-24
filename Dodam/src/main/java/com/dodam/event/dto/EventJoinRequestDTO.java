@@ -10,6 +10,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class EventJoinRequestDTO {
     private Long evNum;   // 이벤트 번호
-    private Long mNum;    // 회원 번호
+    private Long mnum;    // 회원 번호
     private Long lotNum;  // 추첨권 번호 (추첨일 경우 필요)
 }

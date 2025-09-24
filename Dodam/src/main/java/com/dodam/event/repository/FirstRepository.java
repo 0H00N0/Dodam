@@ -2,7 +2,9 @@ package com.dodam.event.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import com.dodam.event.entity.EventNumber;
 import com.dodam.event.entity.First;
+import com.dodam.member.entity.MemberEntity;
 
 import java.util.List;
 
@@ -15,4 +17,8 @@ public interface FirstRepository extends JpaRepository<First, Long> {
 
     // 당첨자 조회
     List<First> findByWinState(Integer winState);
+    
+    boolean existsByEventAndMember(EventNumber event, MemberEntity member);
+    long countByEvent(EventNumber event);
+
 }

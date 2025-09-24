@@ -47,33 +47,72 @@ public class EventServiceImpl implements EventService {
     @Override
     public String joinEvent(EventJoinRequestDTO request) {
         EventNumber event = eventNumberRepository.findById(request.getEvNum())
-                .orElseThrow(() -> new EntityNotFoundException("이벤트를 찾을 수 없습니다."));
+                .orElseThrow(() -> new EntityNotFoundException("이벤트를 찾을 수 없습니다. evNum=" + request.getEvNum()));
 
-        MemberEntity member = memberRepository.findById(request.getMNum())
-                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다."));
+        MemberEntity member = memberRepository.findById(request.getMnum())
+                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다. mnum=" + request.getMnum()));
 
+        // 1. 이벤트 기간 마감 체크
+        if (event.getEndTime() != null && LocalDateTime.now().isAfter(event.getEndTime())) {
+            event.setStatus(2); // 종료
+            eventNumberRepository.save(event);
+            throw new IllegalStateException("이벤트가 종료되었습니다.");
+        }
+
+        // 2. 이벤트 상태 체크
+        if (event.getStatus() == 2) {
+            throw new IllegalStateException("이벤트가 마감되었습니다.");
+        }
+
+        // ------------------------------
+        // 선착순 이벤트
+        // ------------------------------
         if ("FIRST".equalsIgnoreCase(event.getEventType())) {
+            // 중복참여 방지
+            if (firstRepository.existsByEventAndMember(event, member)) {
+                throw new IllegalStateException("이미 해당 이벤트에 참여하셨습니다.");
+            }
+
+            // 정원 제한 (capacity 컬럼 필요)
+            if (event.getCapacity() != null) {
+                long current = firstRepository.countByEvent(event);
+                if (current >= event.getCapacity()) {
+                    event.setStatus(2); // 종료
+                    eventNumberRepository.save(event);
+                    throw new IllegalStateException("이벤트 정원이 마감되었습니다.");
+                }
+            }
+
+            // 참여 저장
             First first = new First();
             first.setEvent(event);
             first.setMember(member);
             first.setFDate(LocalDateTime.now());
-            first.setWinState(0); // 기본 미당첨 상태
+            first.setOrderNum((int) (firstRepository.countByEvent(event) + 1)); // 몇 번째 참여인지 기록
+            first.setWinState(0);
             firstRepository.save(first);
 
             return "선착순 이벤트 참여 완료!";
-        } else if ("DRAWING".equalsIgnoreCase(event.getEventType())) {
+        }
+
+        else if ("DRAWING".equalsIgnoreCase(event.getEventType())) {
             if (request.getLotNum() == null) {
                 throw new IllegalArgumentException("추첨 이벤트에는 추첨권이 필요합니다.");
             }
 
             LotteryTicket ticket = lotteryTicketRepository.findById(request.getLotNum())
-                    .orElseThrow(() -> new EntityNotFoundException("추첨권을 찾을 수 없습니다."));
+                .orElseThrow(() -> new EntityNotFoundException("추첨권을 찾을 수 없습니다."));
 
             if (!ticket.getMember().getMnum().equals(member.getMnum())) {
                 throw new IllegalStateException("해당 추첨권은 이 회원의 것이 아닙니다.");
             }
 
-            if (ticket.getStatus() != 0) { // 0=미사용
+            // ✅ 이벤트에서 요구하는 추첨권 타입과 일치하는지 확인
+            if (!ticket.getLotteryTicketType().getLotTypeNum().equals(event.getLotteryTicketType().getLotTypeNum())) {
+                throw new IllegalStateException("이 이벤트는 " + event.getLotteryTicketType().getLotTypeName() + " 전용입니다.");
+            }
+
+            if (ticket.getStatus() != 0) {
                 throw new IllegalStateException("이미 사용했거나 만료된 추첨권입니다.");
             }
 
@@ -81,19 +120,23 @@ public class EventServiceImpl implements EventService {
             draw.setEvent(event);
             draw.setMember(member);
             draw.setLotteryTicket(ticket);
-            draw.setDrawState(0); // 기본 미당첨 상태
+            draw.setDrawState(0);
             draw.setDrawDate(LocalDateTime.now());
             drawingRepository.save(draw);
 
-            // 추첨권 상태 변경
             ticket.setStatus(1); // 사용 처리
             lotteryTicketRepository.save(ticket);
 
             return "추첨 이벤트 참여 완료!";
-        } else {
+        }
+        // ------------------------------
+        // 알 수 없는 타입
+        // ------------------------------
+        else {
             throw new IllegalArgumentException("알 수 없는 이벤트 유형입니다: " + event.getEventType());
         }
     }
+
     private EventResponseDTO toDTO(EventNumber entity) {
         return EventResponseDTO.builder()
                 .evNum(entity.getEvNum())

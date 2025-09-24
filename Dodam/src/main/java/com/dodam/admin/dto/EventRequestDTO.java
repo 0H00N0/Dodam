@@ -22,5 +22,7 @@ public class EventRequestDTO {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm")
     private LocalDateTime endTime;
     private String eventType;
+    private Integer capacity;   // ✅ 새로 추가: 선착순 이벤트 정원
+    private Long lotTypeNum;  // 관리자 이벤트 생성 시 전달받음
 
 }

@@ -43,6 +43,14 @@ public class EventNumber {
     
     @Column(nullable = false)
     private String eventType; // "FIRST" = 선착순, "DRAWING" = 추첨
+    
+    @Column(name = "capacity")
+    private Integer capacity; // 선착순 이벤트 최대 인원
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lotTypeNum")
+    private LotteryTicketType lotteryTicketType; // 이 이벤트에서 사용할 추첨권 타입
+
 
 }
 
