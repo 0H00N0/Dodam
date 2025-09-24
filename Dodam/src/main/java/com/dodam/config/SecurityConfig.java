@@ -41,7 +41,8 @@ public class SecurityConfig {
                 "/member/updateProfile",
                 "/member/changePw",
                 "/member/changePwDirect",
-                "/member/signup"
+                "/member/signup",
+                "/events/**"
             ))
             // 인가
             .authorizeHttpRequests(auth -> auth
@@ -51,7 +52,9 @@ public class SecurityConfig {
                     "/oauth/**",              // 소셜 엔드포인트 허용
                     "/member/signup",         // 회원가입 허용
                     "/member/loginForm",       // 로컬 로그인 허용
-                    "/products/**"				//상품관련 페이지 허용
+                    "/products/**",				//상품관련 페이지 허용
+                    "/events/**"			//이벤트 관련 페이지 허용
+              
                 ).permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // 프리플라이트 허용
                 .anyRequest().authenticated()

@@ -17,6 +17,9 @@ import lombok.*;
 public class First {
 
     @Id
+ // --- ✅ 아래 3줄 추가 ---
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "first_fnum_seq")
+    @SequenceGenerator(name = "first_fnum_seq", sequenceName = "FIRST_SEQ", allocationSize = 1)
     @Column(name = "fNum", nullable = false)
     private Long fNum;   // PK: 선착순 참여 고유번호
 

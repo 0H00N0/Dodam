@@ -27,7 +27,7 @@ public class EventController {
 
     /** 단건 이벤트 조회 */
     @GetMapping("/{evNum}")
-    public ResponseEntity<EventResponseDTO> getEvent(@PathVariable Long evNum) {
+    public ResponseEntity<EventResponseDTO> getEvent(@PathVariable("evNum") Long evNum) {
         return ResponseEntity.ok(eventService.getEvent(evNum));
     }
 
