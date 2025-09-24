@@ -1,4 +1,3 @@
-
 package com.dodam.config;
 
 import lombok.RequiredArgsConstructor;
@@ -64,15 +63,16 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET,  "/billing-keys/list").permitAll()
                 .requestMatchers("/sub/**").authenticated()
                 .requestMatchers("/pg/**").authenticated()          // 위에서 GET만 permitAll 한 경로는 예외
-                .requestMatchers(
-                        "/", "/index.html",
-                        "/static/**", "/favicon.ico",
-                        "/oauth/**",              // 소셜 엔드포인트 허용
-                        "/member/signup",         // 회원가입 허용
-                        "/member/loginForm",       // 로컬 로그인 허용
-                        "/products/**"				//상품관련 페이지 허용
-                    ).permitAll()
-                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // 프리플라이트 허용
+                .requestMatchers("/static/**").permitAll() 
+                .requestMatchers("/oauth/**").permitAll() 
+                .requestMatchers("/favicon.ico").permitAll() 
+                .requestMatchers("/member/signup").permitAll() 
+                .requestMatchers("/member/loginForm").permitAll() 
+                .requestMatchers("/products/**").permitAll() 
+                .requestMatchers("/index.html").permitAll() 
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                
+
                 // ---- 그 외 ----
                 .anyRequest().permitAll()
             )
@@ -80,6 +80,7 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             // 세션 인증 주입 필터
             .addFilterBefore(sessionAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 
