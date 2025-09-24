@@ -5,11 +5,7 @@ import lombok.*;
 
 @Entity
 @Table(name = "loginmethod")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class LoginmethodEntity {
 
     @Id

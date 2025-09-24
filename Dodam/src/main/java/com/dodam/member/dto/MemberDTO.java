@@ -10,7 +10,6 @@ import lombok.*;
 public class MemberDTO {
     private Long mnum;
     private String mid;
-
     private String mpw;     // 평문 입력 -> 서비스에서(선택) BCrypt 인코딩
     private String mname;
     private String memail;
@@ -73,4 +72,3 @@ public class MemberDTO {
     
     private List<ChildDTO> children;
 }
-
