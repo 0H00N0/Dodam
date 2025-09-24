@@ -2,6 +2,8 @@ package com.dodam.member.entity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,10 +32,10 @@ public class MemberEntity {
     @Column(name = "mname", nullable = false, length = 100)  private String mname;  // 이름
     @Column(name = "memail", length = 255)                   private String memail; // 이메일 (NULL 가능)
     @Column(name = "mtel",  nullable = false, length = 30)   private String mtel;   // 전화
-    @Column(name = "maddr", nullable = true, length = 255)  private String maddr;  // 상세주소
-    @Column(name = "mpost", nullable = true)                private Long mpost;    // 우편번호
-    @Column(name = "mbirth", nullable = true)               private LocalDate mbirth; // 생일
-    @Column(name = "mreg",   nullable = false)               private LocalDate mreg;   // 가입일(date)
+    @Column(name = "maddr", nullable = false, length = 255)  private String maddr;  // 상세주소
+    @Column(name = "mpost", nullable = false)                private Long mpost;    // 우편번호
+    @Column(name = "mbirth", nullable = true)            	 private LocalDate mbirth; // 생일
+    @Column(name = "mreg", nullable = true)					 private LocalDate mreg; // 구독시작일
     @Column(name = "mnic",   length = 100)                   private String mnic;   // 닉네임 (NULL)
 
     @Column(name = "created_at", nullable = false) private LocalDateTime createdAt;
@@ -43,8 +45,11 @@ public class MemberEntity {
     void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = this.createdAt;
-        if (this.mreg == null) this.mreg = LocalDate.now();
     }
+    
     @PreUpdate
     void onUpdate() { this.updatedAt = LocalDateTime.now(); }
+    
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
+    private List<ChildEntity> children;
 }
