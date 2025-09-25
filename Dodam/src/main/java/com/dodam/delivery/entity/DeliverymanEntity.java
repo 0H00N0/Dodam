@@ -17,7 +17,6 @@ import lombok.*;
 public class DeliverymanEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "delnum")
     private Long delnum;
 
