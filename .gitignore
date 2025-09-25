@@ -1,17 +1,20 @@
-<<<<<<< HEAD
-# Compiled class file
+# =========================
+# Java / Spring Boot 기본 무시 규칙
+# =========================
+
+# 클래스 파일
 *.class
 
-# Log file
+# 로그 파일
 *.log
 
-# BlueJ files
+# BlueJ 파일
 *.ctxt
 
-# Mobile Tools for Java (J2ME)
+# J2ME 임시 파일
 .mtj.tmp/
 
-# Package Files #
+# 빌드 결과물
 *.jar
 *.war
 *.nar
@@ -20,31 +23,37 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# VM 크래시 로그
 hs_err_pid*
 replay_pid*
-=======
-HELP.md
-.gradle
+
+# =========================
+# Gradle
+# =========================
+.gradle/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### STS ###
+# =========================
+# STS / Eclipse
+# =========================
 .apt_generated
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
 .sts4-cache
 bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
 
-### IntelliJ IDEA ###
-.idea
+# =========================
+# IntelliJ IDEA
+# =========================
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -52,14 +61,19 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
-### NetBeans ###
+# =========================
+# NetBeans
+# =========================
 /nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+.nb-gradle/
 
-### VS Code ###
+# =========================
+# VS Code
+# =========================
 .vscode/
->>>>>>> f6e7770 (clone my)
-".claude/settings.local.json" 
+
+# =========================
+# 기타
+# =========================
+HELP.md
+".claude/settings.local.json"

@@ -3,7 +3,7 @@ package com.dodam.product.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-@Entity
+@Entity 
 @Table(name = "prostate")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class ProstateEntity {

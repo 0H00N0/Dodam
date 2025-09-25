@@ -52,6 +52,5 @@ public class ProductController {
     public void delete(@PathVariable Long pronum) {
         productService.delete(pronum);
     }
-    
-    
+
 }

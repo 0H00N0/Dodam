@@ -18,9 +18,12 @@ import lombok.RequiredArgsConstructor;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.password.PasswordEncoder; // ✅ 추가
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -52,12 +55,11 @@ public class MemberService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "duplicated mid");
         }
 
-        // ✅ 비밀번호 해시 저장
         String encoded = passwordEncoder.encode(dto.getMpw());
 
         MemberEntity e = MemberEntity.builder()
                 .mid(dto.getMid())
-                .mpw(encoded)                  // ✅ 해시 저장
+                .mpw(encoded)
                 .mname(dto.getMname())
                 .mpost(dto.getMpost())
                 .maddr(dto.getMaddr())
@@ -83,13 +85,38 @@ public class MemberService {
         }
     }
 
+    public void signupAdmin(MemberDTO dto, String memtype) {
+        if (memberRepository.existsByMid(dto.getMid())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "duplicated mid");
+        }
+
+        String encoded = passwordEncoder.encode(dto.getMpw());
+
+        MemtypeEntity memtypeEntity = memtypeRepository.findByMtname(memtype)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid member type"));
+
+        MemberEntity e = MemberEntity.builder()
+                .mid(dto.getMid())
+                .mpw(encoded)
+                .mname(dto.getMname())
+                .memail(dto.getMemail())
+                .mtel(dto.getMtel())
+                .maddr(dto.getMaddr())
+                .mpost(dto.getMpost())
+                .mbirth(dto.getMbirth())
+                .mnic(dto.getMnic())
+                .loginmethod(getOrCreateLocal())
+                .memtype(memtypeEntity)
+                .build();
+
+        memberRepository.save(e);
+    }
+
     public MemberDTO login(String mid, String rawPw) {
         var e = memberRepository.findByMid(mid)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid id/pw"));
 
-        // ✅ 해시 검증
         if (!passwordEncoder.matches(rawPw, e.getMpw())) {
-            // (선택) 평문→해시 마이그레이션이 필요하면 아래 주석 블록 참고
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid id/pw");
         }
 
@@ -100,12 +127,14 @@ public class MemberService {
         return memberRepository.existsByMid(mid);
     }
 
-    private static boolean isBlank(String s) { return s == null || s.isBlank(); }
+    private static boolean isBlank(String s) { 
+        return s == null || s.isBlank(); 
+    }
 
     @Transactional
     public void updateProfile(String sid, MemberDTO dto) {
         MemberEntity entity = memberRepository.findByMid(sid)
-            .orElseThrow(() -> new RuntimeException("회원 없음"));
+                .orElseThrow(() -> new RuntimeException("회원 없음"));
         entity.setMemail(dto.getMemail());
         entity.setMtel(dto.getMtel());
         entity.setMaddr(dto.getMaddr());
@@ -137,7 +166,6 @@ public class MemberService {
         if (!passwordEncoder.matches(dto.getCurrentPw(), entity.getMpw())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "현재 비밀번호가 일치하지 않습니다.");
         }
-        entity.setMpw(passwordEncoder.encode(dto.getNewPw()));
 
         // 새 비밀번호 저장
         entity.setMpw(passwordEncoder.encode(dto.getNewPw()));
@@ -152,14 +180,30 @@ public class MemberService {
 
     public String findIdByNameAndTel(String mname, String mtel) {
         return memberRepository.findByMnameAndMtel(mname, mtel)
-            .map(MemberEntity::getMid)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
+                .map(MemberEntity::getMid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
     }
 
     public String findIdByNameAndEmail(String mname, String memail) {
         return memberRepository.findByMnameAndMemail(mname, memail)
-            .map(MemberEntity::getMid)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
+                .map(MemberEntity::getMid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "일치하는 회원이 없습니다."));
+    }
+
+    public List<MemberDTO> findAll() {
+        return memberRepository.findAll().stream()
+                .map(MemberDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    public MemberDTO findById(Long id) {
+        return memberRepository.findById(id)
+                .map(MemberDTO::new)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found"));
+    }
+
+    public void deleteById(Long id) {
+        memberRepository.deleteById(id);
     }
 
     // 비밀번호 암호화 후 DB에 저장

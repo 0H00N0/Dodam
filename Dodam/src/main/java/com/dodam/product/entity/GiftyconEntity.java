@@ -1,5 +1,5 @@
 package com.dodam.product.entity;
-
+ 
 //import com.dodam.member.entity.MemberEntity;
 import jakarta.persistence.*;
 import lombok.*;

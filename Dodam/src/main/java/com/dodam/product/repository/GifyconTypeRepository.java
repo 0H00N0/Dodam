@@ -6,3 +6,4 @@ import com.dodam.product.entity.GifyconTypeEntity;
 public interface GifyconTypeRepository extends JpaRepository<GifyconTypeEntity, Long> {
 	
 }
+ 
