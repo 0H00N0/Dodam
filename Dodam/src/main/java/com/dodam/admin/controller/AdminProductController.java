@@ -47,4 +47,29 @@ public class AdminProductController {
         return ResponseEntity.ok(product);
     }
     // ⬆️ ====================================== ⬆️
+    /**
+     * 관리자 상품 수정 API
+     * @param productId 수정할 상품의 ID
+     * @param requestDTO 수정할 상품 정보 DTO
+     * @return 수정된 상품 상세 정보
+     */
+    @PutMapping("/{productId}")
+    public ResponseEntity<ProductDetailResponseDTO> updateProduct(
+            @PathVariable("productId") Long productId,
+            @Valid @RequestBody AdminProductRequestDTO requestDTO) {
+        
+        ProductDetailResponseDTO updatedProduct = adminProductService.updateProduct(productId, requestDTO);
+        return ResponseEntity.ok(updatedProduct);
+    }
+    /**
+     * 관리자 상품 삭제 API
+     * @param productId 삭제할 상품의 ID
+     * @return 성공 시 204 No Content
+     */
+    @DeleteMapping("/{productId}")
+    public ResponseEntity<Void> deleteProduct(@PathVariable("productId") Long productId) {
+        adminProductService.deleteProduct(productId);
+        // 성공적으로 삭제되었으며, 별도의 본문(body)이 없음을 의미하는 204 No Content 상태를 반환합니다.
+        return ResponseEntity.noContent().build();
+    }
 }

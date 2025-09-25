@@ -56,7 +56,7 @@ public class PlanSubscriptionController {
         if (!StringUtils.hasText(planCode)) {
             return ResponseEntity.badRequest().body(Map.of("error", "MISSING_PLAN_CODE"));
         }
-
+ 
         // 1) 회원/결제수단/플랜/약정 조회
         MemberEntity member = memberRepo.findByMid(mid)
                 .orElseThrow(() -> new IllegalStateException("회원 정보를 찾을 수 없습니다. mid=" + mid));

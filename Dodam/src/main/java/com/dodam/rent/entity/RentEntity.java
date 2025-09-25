@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Rent {
+public class RentEntity { //대여 테이블
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,8 +41,8 @@ public class Rent {
     @Column(name = "retdate", nullable = true)
     private LocalDateTime retDate;
 
-    @Column(name = "remrider")
-    private String remRider;
+    @Column(name = "renrider")
+    private String renRider;
 
     @Column(name = "renapproval", nullable = false)
     private Integer renApproval;
@@ -51,7 +51,7 @@ public class Rent {
     private String renShip;
 
     @Column(name = "overdue", nullable = true)
-    private Integer overDue;
+    private Integer overDue; //연체
 
     @Column(name = "extend")
     private Integer extendInfo;
@@ -61,10 +61,6 @@ public class Rent {
 
     @Column(name = "restate", nullable = false)
     private Integer reState;
-    
- // ▼▼▼▼▼ 소문자/camelCase 필드 추가 ▼▼▼▼▼
-    @Column(name = "courier")
-    private String courier; // 택배사
 
     @Column(name = "trackingnumber")
     private String trackingNumber; // 운송장 번호

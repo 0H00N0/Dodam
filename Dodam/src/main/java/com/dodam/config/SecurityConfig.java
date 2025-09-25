@@ -1,4 +1,4 @@
-// src/main/java/com/dodam/config/SecurityConfig.java
+
 package com.dodam.config;
 
 import lombok.RequiredArgsConstructor;
@@ -32,7 +32,9 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+        	// CORS
             .cors(cors -> cors.configurationSource(corsSource()))
+            // CSRF: 상태변경 엔드포인트만 예외
             .csrf(csrf -> csrf.ignoringRequestMatchers(
                 // 기존
                 "/oauth/**",
@@ -49,7 +51,10 @@ public class SecurityConfig {
                 "/billing-keys/**",
                 "/pg/payments/**",
                 "/pg/transactions/**"
+                "/events/**",
+                "/admin/**"
             ))
+            // 인가
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -72,9 +77,12 @@ public class SecurityConfig {
                 .requestMatchers("/member/loginForm").permitAll()
                 .requestMatchers("/products/**").permitAll()
                 .requestMatchers("/index.html").permitAll()
+                .requestMatchers("/admin/**").permitAll()
                 .anyRequest().permitAll()
             )
+            // 세션 기반
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            // 세션 인증 주입 필터
             .addFilterBefore(sessionAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -83,11 +91,14 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsSource() {
         CorsConfiguration c = new CorsConfiguration();
-        c.setAllowCredentials(true);
-        // ✅ 다양한 로컬 포트 허용
-        c.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:3000", front));
+        c.setAllowCredentials(true); // axios withCredentials:true 매칭
+        c.setAllowedOrigins(List.of(
+            front,                      // ex) http://localhost:3000
+            "http://127.0.0.1:3000"
+        ));
         c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
         c.setAllowedHeaders(List.of("*"));
+        // 필요시 노출헤더: c.setExposedHeaders(List.of("Set-Cookie"));
 
         UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
         src.registerCorsConfiguration("/**", c);

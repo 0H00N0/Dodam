@@ -19,4 +19,8 @@ public class Reservation {
 
     @Column(name = "reserlevel", nullable = false)
     private Integer reserLevel;
+    
+    @Column(name="resername",nullable = false)
+    private String reserName;
+    
 }
