@@ -50,7 +50,7 @@ public class SecurityConfig {
                 "/subscriptions/**",
                 "/billing-keys/**",
                 "/pg/payments/**",
-                "/pg/transactions/**"
+                "/pg/transactions/**",
                 "/events/**",
                 "/admin/**"
             ))
@@ -78,6 +78,7 @@ public class SecurityConfig {
                 .requestMatchers("/products/**").permitAll()
                 .requestMatchers("/index.html").permitAll()
                 .requestMatchers("/admin/**").permitAll()
+                .requestMatchers("/events/**").permitAll()
                 .anyRequest().permitAll()
             )
             // 세션 기반
