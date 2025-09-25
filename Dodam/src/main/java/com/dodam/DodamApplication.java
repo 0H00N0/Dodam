@@ -1,14 +1,18 @@
 package com.dodam;
 
+import com.dodam.plan.config.PlanPortoneProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 /**
  * Dodam 애플리케이션의 메인 진입점 클래스입니다.
  * Spring Boot 애플리케이션을 부트스트랩하고 실행하는 역할을 합니다.
  */
 @SpringBootApplication
+@EnableConfigurationProperties(PlanPortoneProperties.class) // ✅ properties 빈 등록
 public class DodamApplication {
+<<<<<<< HEAD
 
 	/**
 	 * 애플리케이션의 메인 메소드입니다.
@@ -19,5 +23,10 @@ public class DodamApplication {
 		SpringApplication.run(DodamApplication.class, args);
 	}
 
+=======
+    public static void main(String[] args) {
+        SpringApplication.run(DodamApplication.class, args);
+    }
+>>>>>>> refs/remotes/origin/plan
 }
 
