@@ -1,9 +1,8 @@
-// src/main/java/com/dodam/plan/controller/PlanPgWebhookController.java
 package com.dodam.plan.controller;
 
 import com.dodam.plan.Entity.PlanInvoiceEntity;
-import com.dodam.plan.dto.PlanLookupResult;
 import com.dodam.plan.repository.PlanInvoiceRepository;
+import com.dodam.plan.repository.PlanPaymentRepository;
 import com.dodam.plan.service.PlanBillingService;
 import com.dodam.plan.service.PlanPaymentGatewayService;
 import com.dodam.plan.service.PlanPortoneClientService;
@@ -13,9 +12,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Slf4j
@@ -28,114 +29,153 @@ public class PlanPgWebhookController {
     private final PlanBillingService billingSvc;
     private final PlanPaymentGatewayService pgSvc;
     private final PlanPortoneClientService portoneClient; // orderId 조회용
+    private final PlanPaymentRepository paymentRepo;      // 카드메타 갱신 (payKey 기준)
 
     private static final JsonMapper M = JsonMapper.builder().build();
     private static final Set<String> PID_KEYS = setOf(
-            "paymentId","payment_id","id","payment.id","transactionUid","transaction_uid","tx_id"
+            "paymentId","payment_id","id","payment.id",
+            "transactionUid","transaction_uid","tx_id",
+            "orderId","order_id" // inv…-ts… 형태 보조
     );
-    private static final Set<String> STATUS_KEYS = setOf("status");
-    private static final Set<String> RECEIPT_KEYS = setOf("receiptUrl","receipt.url");
+    private static final Set<String> STATUS_KEYS  = setOf("status","payment.status","pay.status");
+    private static final Set<String> RECEIPT_KEYS = setOf("receiptUrl","receipt.url","card.receiptUrl");
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Transactional
     public ResponseEntity<?> handle(@RequestBody String raw) {
         try {
-            JsonNode root = M.readTree(raw);
-            String paymentId = pickDeep(root, PID_KEYS);   // 보통 orderId
-            String statusRaw = pickDeep(root, STATUS_KEYS);
-            String receiptUrl = pickDeep(root, RECEIPT_KEYS);
+            final JsonNode root = M.readTree(raw);
 
-            log.info("[WEBHOOK] recv paymentId={}, status={}, receipt={}", paymentId, statusRaw, receiptUrl);
+            // 🔍 원본 JSON을 예쁘게 로깅
+            log.info("[WEBHOOK RAW JSON PRETTY]\n{}", root.toPrettyString());
+
+            final String anyId     = pickDeep(root, PID_KEYS);     // providerId 또는 orderId(inv…-ts…)
+            final String statusRaw = pickDeep(root, STATUS_KEYS);
+            String       receipt   = pickDeep(root, RECEIPT_KEYS);
+
+            log.info("[WEBHOOK] id={}, status={}, receipt={}", anyId, statusRaw, receipt);
             log.debug("[WEBHOOK][RAW] {}", raw);
 
-            if (!StringUtils.hasText(paymentId)) {
-                log.warn("[WEBHOOK] skip: empty payment id. (keys seen={})", listKeys(root));
+            if (!StringUtils.hasText(anyId)) {
+                log.warn("[WEBHOOK] skip: empty id. keys={}", listKeys(root));
                 return ResponseEntity.ok().build();
             }
 
-            Optional<PlanInvoiceEntity> optInv = invoiceRepo.findByPiUid(paymentId);
+            // 1) 인보이스 찾기: (A) piUid = anyId  (B) inv{piId}-ts… 에서 숫자 추출
+            Optional<PlanInvoiceEntity> optInv = invoiceRepo.findByPiUid(anyId);
             if (optInv.isEmpty()) {
-                try {
-                    Long invId = Long.parseLong(paymentId.replaceFirst("^inv","").split("-")[0].replaceAll("[^0-9]",""));
-                    optInv = invoiceRepo.findById(invId);
-                } catch (Exception ignore) {}
+                optInv = findByInvLike(anyId);
             }
             if (optInv.isEmpty()) {
-                log.warn("[WEBHOOK] invoice not found by paymentId={}", paymentId);
+                log.warn("[WEBHOOK] invoice not found by id={}", anyId);
                 return ResponseEntity.ok().build();
             }
-            Long invoiceId = optInv.get().getPiId();
+            PlanInvoiceEntity inv = optInv.get();
 
-            String st = (statusRaw == null ? "" : statusRaw.trim().toUpperCase(Locale.ROOT));
-
+            // 2) 상태 판정 (느슨하게)
+            final String st = normUp(statusRaw);
             if (isPaid(st)) {
-                String enrichedJson = raw;
-                String enrichedReceipt = receiptUrl;
-
-                // 0) 먼저 orderId -> providerId 찾기
+                // --- enrich: providerId/lookup/rawJson/receipt, billingKey(payKey), 카드메타 ---
                 String providerId = null;
+                String enrichedJson = raw;
+                String payKey = null;
+
+                // (0) orderId -> providerId 시도
                 try {
-                    JsonNode byOrder = portoneClient.getPaymentByOrderId(paymentId); // orderId 조회
+                    JsonNode byOrder = portoneClient.getPaymentByOrderId(anyId);
                     if (byOrder != null && !byOrder.isMissingNode()) {
-                        providerId = pickProviderIdByOrderId(byOrder, paymentId); // ✅ 정확 매칭
+                        providerId = pickProviderIdByOrderId(byOrder, anyId);
                         if (providerId != null) {
-                            String rcp = pickReceiptFromNode(findItemByOrderId(byOrder, paymentId));
-                            if (StringUtils.hasText(rcp) && !StringUtils.hasText(enrichedReceipt)) {
-                                enrichedReceipt = rcp;
+                            JsonNode exact = findItemByOrderId(byOrder, anyId);
+                            String rcp = pickDeep(exact, RECEIPT_KEYS);
+                            if (!StringUtils.hasText(receipt) && StringUtils.hasText(rcp)) {
+                                receipt = rcp;
                             }
-                        } else {
-                            log.debug("[WEBHOOK] no exact match for orderId={} in getPaymentByOrderId()", paymentId);
+                            payKey = firstNonBlank(
+                                    pickDeep(exact, setOf("billingKey","billing_key","payKey"))
+                            );
                         }
                     }
                 } catch (Exception e) {
-                    log.debug("[WEBHOOK] orderId enrich failed: {}", e.toString());
+                    log.debug("[WEBHOOK] orderId enrich fail: {}", e.toString());
                 }
 
-                // 1) provider id가 있으면 그것으로 디테일 조회 → rawJson 대체
+                // (1) providerId 있으면 정조회
                 if (StringUtils.hasText(providerId) && !providerId.startsWith("inv")) {
                     try {
-                        var lr = pgSvc.lookup(providerId); // 내부에서 providerId 그대로 조회
+                        var lr = pgSvc.lookup(providerId);
                         if (StringUtils.hasText(lr.rawJson())) {
                             enrichedJson = lr.rawJson();
                             String rcp = tryReceipt(enrichedJson);
-                            if (rcp != null && !StringUtils.hasText(enrichedReceipt)) enrichedReceipt = rcp;
+                            if (!StringUtils.hasText(receipt) && rcp != null) receipt = rcp;
+                            if (!StringUtils.hasText(payKey)) {
+                                payKey = safePick(enrichedJson, "billingKey","billing_key","payKey");
+                            }
+                            CardMeta cm = parseCardMeta(enrichedJson);
+                            if (StringUtils.hasText(payKey)) {
+                                paymentRepo.updateCardMetaByKey(payKey, cm.bin, cm.brand, cm.last4, cm.pg);
+                            }
                         }
                     } catch (Exception e) {
-                        log.debug("[WEBHOOK] provider lookup failed: {}", e.toString());
+                        log.debug("[WEBHOOK] provider lookup fail: {}", e.toString());
                     }
                 } else {
-                    // 2) providerId를 못 찾았으면 safeLookup(paymentId)로 한 번 더 시도
-                    PlanLookupResult look = pgSvc.safeLookup(paymentId);
-                    if (StringUtils.hasText(look.paymentId()) && !look.paymentId().startsWith("inv")) {
-                        providerId = look.paymentId();
-                    }
+                    // (2) 안전 조회
+                    var look = pgSvc.safeLookup(anyId);
                     if (StringUtils.hasText(look.rawJson())) {
                         enrichedJson = look.rawJson();
                         String rcp = tryReceipt(enrichedJson);
-                        if (rcp != null && !StringUtils.hasText(enrichedReceipt)) enrichedReceipt = rcp;
+                        if (!StringUtils.hasText(receipt) && rcp != null) receipt = rcp;
+                        if (!StringUtils.hasText(providerId) && StringUtils.hasText(look.paymentId())
+                                && !look.paymentId().startsWith("inv")) {
+                            providerId = look.paymentId();
+                        }
+                        if (!StringUtils.hasText(payKey)) {
+                            payKey = safePick(enrichedJson, "billingKey","billing_key","payKey");
+                        }
+                        CardMeta cm = parseCardMeta(enrichedJson);
+                        if (StringUtils.hasText(payKey)) {
+                            paymentRepo.updateCardMetaByKey(payKey, cm.bin, cm.brand, cm.last4, cm.pg);
+                        }
                     }
                 }
 
-                // ✅ pattUid는 provider id가 있으면 그걸로, 없으면 orderId로
-                String pattUid = StringUtils.hasText(providerId) ? providerId : paymentId;
-                billingSvc.recordAttempt(invoiceId, true, null, pattUid, enrichedReceipt, enrichedJson);
+                // --- 인보이스: PAID 전환 + piUid 비어있으면 세팅 ---
+                final String uid = StringUtils.hasText(providerId) ? providerId : anyId;
+                invoiceRepo.markPaidAndSetUidIfEmpty(inv.getPiId(), uid, LocalDateTime.now());
+
+                // --- 시도 레코드 + pattUrl 저장 (billingSvc가 내부에서 PlanAttempt.pattUrl 저장) ---
+                billingSvc.recordAttempt(inv.getPiId(), true, null, uid, firstNonBlank(receipt), enrichedJson);
+
+                // 🔍 실제 저장된 rawJson 확인 로그
+                log.info("[DEBUG] recordAttempt.enrichedJson={}", enrichedJson);
+
                 return ResponseEntity.ok().build();
             }
 
             if (isFailed(st)) {
-                billingSvc.recordAttempt(invoiceId, false, "WEBHOOK:" + st, paymentId, receiptUrl, raw);
+                billingSvc.recordAttempt(inv.getPiId(), false, "WEBHOOK:" + st, anyId, firstNonBlank(receipt), raw);
                 return ResponseEntity.ok().build();
             }
 
-            // 애매하면 lookup
-            PlanLookupResult look = pgSvc.safeLookup(paymentId);
-            String lst = look.status() == null ? "" : look.status().toUpperCase(Locale.ROOT);
+            // 불명확하면 조회로 판정
+            var look = pgSvc.safeLookup(anyId);
+            final String lst = normUp(look.status());
             if (isPaid(lst)) {
-                String rcp = firstNonBlank(tryReceipt(look.rawJson()), receiptUrl);
-                billingSvc.recordAttempt(invoiceId, true, null, look.paymentId(), rcp, look.rawJson());
+                String rcp = firstNonBlank(tryReceipt(look.rawJson()), receipt);
+                // 카드메타
+                String payKey = safePick(look.rawJson(), "billingKey","billing_key","payKey");
+                CardMeta cm = parseCardMeta(look.rawJson());
+                if (StringUtils.hasText(payKey)) {
+                    paymentRepo.updateCardMetaByKey(payKey, cm.bin, cm.brand, cm.last4, cm.pg);
+                }
+                String uid = StringUtils.hasText(look.paymentId()) ? look.paymentId() : anyId;
+                invoiceRepo.markPaidAndSetUidIfEmpty(inv.getPiId(), uid, LocalDateTime.now());
+                billingSvc.recordAttempt(inv.getPiId(), true, null, uid, rcp, look.rawJson());
             } else if (isFailed(lst)) {
-                billingSvc.recordAttempt(invoiceId, false, "LOOKUP:" + lst, paymentId, receiptUrl, look.rawJson());
+                billingSvc.recordAttempt(inv.getPiId(), false, "LOOKUP:" + lst, anyId, firstNonBlank(receipt), look.rawJson());
             } else {
-                billingSvc.recordAttempt(invoiceId, false, "LOOKUP:PENDING", paymentId, receiptUrl, look.rawJson());
+                billingSvc.recordAttempt(inv.getPiId(), false, "LOOKUP:PENDING", anyId, firstNonBlank(receipt), look.rawJson());
             }
             return ResponseEntity.ok().build();
 
@@ -145,8 +185,26 @@ public class PlanPgWebhookController {
         }
     }
 
-    // helpers ...
+    /* ================= helpers ================= */
+
     private static Set<String> setOf(String... a){ return new HashSet<>(Arrays.asList(a)); }
+    private static String normUp(String s){ return s==null ? null : s.trim().toUpperCase(Locale.ROOT); }
+    private static boolean isPaid(String s){
+        String u = normUp(s);
+        return "PAID".equals(u) || "SUCCEEDED".equals(u) || "SUCCESS".equals(u) || "PARTIAL_PAID".equals(u);
+    }
+    private static boolean isFailed(String s){
+        String u = normUp(s);
+        return "FAILED".equals(u) || "CANCELED".equals(u) || "CANCELLED".equals(u);
+    }
+
+    private Optional<PlanInvoiceEntity> findByInvLike(String anyId){
+        try {
+            Long invId = Long.parseLong(anyId.replaceFirst("^inv","").split("-")[0].replaceAll("[^0-9]",""));
+            return invoiceRepo.findById(invId);
+        } catch (Exception ignore) { return Optional.empty(); }
+    }
+
     private static String pickDeep(JsonNode root, Set<String> keys) {
         if (root == null) return null;
         for (String k : keys) {
@@ -194,7 +252,9 @@ public class PlanPgWebhookController {
         }
         return null;
     }
+
     private static String firstNonBlank(String... v){ if (v==null) return null; for (String s : v) if (StringUtils.hasText(s)) return s; return null; }
+
     private static String tryReceipt(String rawJson){
         try {
             JsonNode r = M.readTree(rawJson);
@@ -207,21 +267,59 @@ public class PlanPgWebhookController {
         } catch (Exception ignore) {}
         return null;
     }
-    private static boolean isPaid(String s){
-        if (s == null) return false;
-        String u = s.trim().toUpperCase(Locale.ROOT);
-        return u.equals("PAID") || u.equals("SUCCEEDED") || u.equals("SUCCESS") || u.equals("PARTIAL_PAID");
+
+    private static JsonNode findItemByOrderId(JsonNode root, String orderId) {
+        if (root == null || !StringUtils.hasText(orderId)) return null;
+        if (orderId.equals(root.path("orderId").asText(null))) return root;
+
+        JsonNode items = root.get("items");
+        if (items != null && items.isArray()) {
+            for (JsonNode it : items) {
+                if (orderId.equals(it.path("orderId").asText(null))) return it;
+            }
+        }
+        return null;
     }
-    private static boolean isFailed(String s){
-        if (s == null) return false;
-        String u = s.trim().toUpperCase(Locale.ROOT);
-        return u.equals("FAILED") || u.equals("CANCELED") || u.equals("CANCELLED");
+    private static String pickProviderIdByOrderId(JsonNode root, String orderId) {
+        JsonNode n = findItemByOrderId(root, orderId);
+        if (n == null) return null;
+        return pickDeep(n, setOf("id","payment.id","transactionUid","transaction_uid","tx_id"));
     }
+    private static String safePick(String rawJson, String... keys) {
+        try {
+            return pickDeep(M.readTree(rawJson), setOf(keys));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /* ===== 카드 메타 파싱 ===== */
+    private record CardMeta(String bin, String brand, String last4, String pg) {}
+    private static CardMeta parseCardMeta(String rawJson) {
+        try {
+            JsonNode r = M.readTree(rawJson);
+            String bin   = pickDeep(r, setOf("card.bin","methodDetail.card.bin","method.card.bin"));
+            String brand = pickDeep(r, setOf("card.company","card.brand","methodDetail.brand","card.issuer","card.acquirer"));
+            String last4 = pickDeep(r, setOf("card.lastFourDigits","card.last4","methodDetail.card.last4"));
+            if (!StringUtils.hasText(last4)) {
+                String masked = pickDeep(r, setOf("card.number","card.cardNumber"));
+                if (StringUtils.hasText(masked) && masked.length() >= 4) {
+                    last4 = masked.substring(masked.length() - 4);
+                }
+            }
+            String pg = pickDeep(r, setOf("pgProvider","gateway","pg","provider"));
+            return new CardMeta(bin, brand, last4, pg);
+        } catch (Exception e) {
+            return new CardMeta(null,null,null,null);
+        }
+    }
+
     private static List<String> listKeys(JsonNode n){
         List<String> out = new ArrayList<>();
         collectKeys(n, out, "");
         return out;
     }
+
     private static void collectKeys(JsonNode n, List<String> out, String prefix){
         if (n == null) return;
         if (n.isObject()){
@@ -238,29 +336,5 @@ public class PlanPgWebhookController {
                 collectKeys(c, out, prefix + "["+(i++)+"]");
             }
         }
-    }
-    
-    private static JsonNode findItemByOrderId(JsonNode root, String orderId) {
-        if (root == null || !StringUtils.hasText(orderId)) return null;
-        if (orderId.equals(root.path("orderId").asText(null))) return root;
-
-        JsonNode items = root.get("items");
-        if (items != null && items.isArray()) {
-            for (JsonNode it : items) {
-                if (orderId.equals(it.path("orderId").asText(null))) return it;
-            }
-        }
-        return null;
-    }
-
-    private static String pickProviderIdByOrderId(JsonNode root, String orderId) {
-        JsonNode n = findItemByOrderId(root, orderId);
-        if (n == null) return null;
-        return pickDeep(n, setOf("id","payment.id","transactionUid","transaction_uid","tx_id"));
-    }
-
-    private static String pickReceiptFromNode(JsonNode n) {
-        if (n == null) return null;
-        return pickDeep(n, RECEIPT_KEYS);
     }
 }

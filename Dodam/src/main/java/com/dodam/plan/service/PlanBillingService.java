@@ -3,6 +3,7 @@ package com.dodam.plan.service;
 
 import com.dodam.plan.Entity.PlanAttemptEntity;
 import com.dodam.plan.Entity.PlanInvoiceEntity;
+import com.dodam.plan.Entity.PlanMember;
 import com.dodam.plan.Entity.PlanPaymentEntity;
 import com.dodam.plan.dto.PlanCardMeta;
 import com.dodam.plan.enums.PlanEnums.PattResult;
@@ -42,31 +43,35 @@ public class PlanBillingService {
                               String receiptUrl,
                               String respJson) {
 
+        // ---- DEBUG: 입력값 요약 ----
+        if (log.isDebugEnabled()) {
+            String respJsonPreview = (respJson == null) ? "null"
+                    : (respJson.length() > 300 ? respJson.substring(0, 300) + "...(truncated)" : respJson);
+            log.debug("[recordAttempt] invoiceId={}, success={}, failReason={}, respUid={}, receiptUrl={}, respJsonPreview={}",
+                    invoiceId, success, failReason, respUid, receiptUrl, respJsonPreview);
+        }
+
+        // 1) 인보이스 로드
         PlanInvoiceEntity inv = invoiceRepo.findById(invoiceId)
                 .orElseThrow(() -> new IllegalArgumentException("INVOICE_NOT_FOUND:" + invoiceId));
 
-        // 1) 시도 기록
+        // 2) Attempt 기록
+        String resolvedReceipt = resolveReceiptUrl(receiptUrl, respJson);
         PlanAttemptEntity att = PlanAttemptEntity.builder()
                 .invoice(inv)
                 .pattResult(success ? PattResult.SUCCESS : PattResult.FAIL)
                 .pattFail(success ? null : failReason)
-                .pattUid(respUid)   // provider payment id or orderId
-                .pattUrl(receiptUrl)
+                .pattUid(respUid)
+                .pattUrl(resolvedReceipt)
                 .pattResponse(respJson)
                 .build();
         attemptRepo.save(att);
 
-        // 2) piUid 멱등 바인딩
-        if (StringUtils.hasText(respUid)) {
-            invoiceRepo.findByPiUid(respUid).ifPresentOrElse(owner -> {
-                if (!owner.getPiId().equals(invoiceId)) {
-                    log.warn("[Billing] paymentId {} is already bound to invoice {}. skip binding to {}",
-                            respUid, owner.getPiId(), invoiceId);
-                }
-            }, () -> inv.setPiUid(respUid));
-        }
+        log.debug("[recordAttempt] attempt saved: pattId={}, result={}, uid={}, receipt={}",
+                att.getPattId(), att.getPattResult(), att.getPattUid(), att.getPattUrl());
 
-        // 3) 상태 전이
+        // 3) 인보이스 상태 전이
+        PiStatus before = inv.getPiStat();
         if (success) {
             inv.setPiStat(PiStatus.PAID);
             inv.setPiPaid(LocalDateTime.now());
@@ -82,73 +87,116 @@ public class PlanBillingService {
         }
         invoiceRepo.save(inv);
 
-     // 4) 카드 메타 저장 (반드시 billingKey로 매칭된 카드에만)
+        log.debug("[recordAttempt] invoice state changed: {} -> {}, piPaid={}",
+                before, inv.getPiStat(), inv.getPiPaid());
+
+        // 4) 카드 메타 저장
         try {
             if (success && StringUtils.hasText(respJson)) {
-                String usedBillingKey = extractBillingKey(respJson);
+                PlanPaymentEntity targetPayment = null;
 
-                if (!StringUtils.hasText(usedBillingKey)) {
-                    log.info("[Billing] skip card meta: no billingKey in provider response (invoice={})", invoiceId);
-                    return;
+                // 인보이스 -> PlanMember -> Payment
+                PlanMember pm = inv.getPlanMember();
+                if (pm != null) targetPayment = pm.getPayment();
+
+                // billingKey로 fallback
+                if (targetPayment == null) {
+                    String usedBillingKey = extractBillingKey(respJson);
+                    log.debug("[recordAttempt] fallback billingKey = {}", usedBillingKey);
+                    if (StringUtils.hasText(usedBillingKey)) {
+                        Optional<PlanPaymentEntity> byKey = paymentRepo.findByPayKey(usedBillingKey);
+                        if (byKey.isPresent()) targetPayment = byKey.get();
+                    }
                 }
 
-                Optional<PlanPaymentEntity> byKey = paymentRepo.findByPayKey(usedBillingKey);
-                if (byKey.isEmpty()) {
-                    log.warn("[Billing] skip card meta: payment not found by billingKey={} (invoice={})",
-                            usedBillingKey, invoiceId);
-                    return;
-                }
-
-                PlanPaymentEntity targetPayment = byKey.get();
-
-                PlanCardMeta meta = pgSvc.extractCardMeta(respJson);
-                boolean hasAny = meta != null && (
-                        StringUtils.hasText(meta.getBin()) ||
-                        StringUtils.hasText(meta.getBrand()) ||
-                        StringUtils.hasText(meta.getLast4()) ||
-                        StringUtils.hasText(meta.getPg())
-                );
-                if (hasAny) {
-                    int updated = paymentRepo.updateCardMeta(
-                            targetPayment.getPayId(),
-                            safe(meta.getBin()),
-                            safe(meta.getBrand()),
-                            safe(meta.getLast4()),
-                            safe(meta.getPg())
-                    );
-                    log.info("[Billing] cardMeta update rows={} (payId={}, bk={})",
-                            updated, targetPayment.getPayId(), targetPayment.getPayKey());
+                if (targetPayment == null) {
+                    log.warn("[Billing] skip card meta: no target payment found (invoice={})", invoiceId);
                 } else {
-                    log.info("[Billing] cardMeta skipped (no fields) for paymentId={}", targetPayment.getPayId());
-                }
+                    PlanCardMeta meta = pgSvc.extractCardMeta(respJson);
+                    log.debug("[recordAttempt] extracted card meta: {}", meta);
 
-                targetPayment.setPayRaw(respJson);
-                paymentRepo.save(targetPayment);
+                    // last4 숫자 보정
+                    if (meta != null && StringUtils.hasText(meta.getLast4())) {
+                        String digits = meta.getLast4().replaceAll("\\D", "");
+                        if (digits.length() >= 4) {
+                            meta = new PlanCardMeta(
+                                    meta.getBillingKey(),
+                                    meta.getBrand(),
+                                    meta.getBin(),
+                                    digits.substring(digits.length() - 4),
+                                    meta.getPg(),
+                                    false,
+                                    null
+                            );
+                        }
+                    }
+
+                    if (meta != null) {
+                        if (meta.getBin() != null) targetPayment.setPayBin(meta.getBin());
+                        if (meta.getBrand() != null) targetPayment.setPayBrand(meta.getBrand());
+                        if (meta.getLast4() != null) targetPayment.setPayLast4(meta.getLast4());
+                        if (meta.getPg() != null) targetPayment.setPayPg(meta.getPg());
+
+                        // 원문 보관
+                        if (!StringUtils.hasText(targetPayment.getPayRaw())) {
+                            targetPayment.setPayRaw(respJson);
+                        }
+
+                        paymentRepo.save(targetPayment);
+                        log.info("[Billing] cardMeta updated (payId={})", targetPayment.getPayId());
+                    }
+                }
             }
         } catch (Exception e) {
             log.warn("[Billing] save card meta failed: {}", e.toString(), e);
         }
     }
 
-    /** raw JSON 에서 billingKey 추출 (items[0] / payment / root 모두 지원) */
-    private String extractBillingKey(String raw) {
+    // --- helpers ---
+    private String resolveReceiptUrl(String explicitReceipt, String rawJson) {
+        if (StringUtils.hasText(explicitReceipt)) return explicitReceipt;
+        if (!StringUtils.hasText(rawJson)) return null;
         try {
-            JsonNode root = OM.readTree(raw);
-            // items[0].billingKey
-            if (root.has("items") && root.get("items").isArray() && root.get("items").size() > 0) {
-                String v = n(root.get("items").get(0).path("billingKey").asText(null));
-                if (StringUtils.hasText(v)) return v;
-            }
-            // payment.billingKey
-            String v2 = n(root.path("payment").path("billingKey").asText(null));
-            if (StringUtils.hasText(v2)) return v2;
-            // root.billingKey
-            String v3 = n(root.path("billingKey").asText(null));
-            if (StringUtils.hasText(v3)) return v3;
+            JsonNode root = OM.readTree(rawJson);
+            return firstNonBlank(
+                    get(root, "receiptUrl"),
+                    get(root, "receipt", "url"),
+                    get(root, "urls", "receipt"),
+                    get(root, "payment", "receiptUrl"),
+                    get(root, "payment", "receipt", "url")
+            );
         } catch (Exception ignore) { }
         return null;
     }
 
-    private String safe(String v) { return (v == null || v.isBlank()) ? null : v; }
+    private String extractBillingKey(String raw) {
+        try {
+            JsonNode root = OM.readTree(raw);
+            if (root.has("items") && root.get("items").isArray() && root.get("items").size() > 0) {
+                String v = n(root.get("items").get(0).path("billingKey").asText(null));
+                if (StringUtils.hasText(v)) return v;
+            }
+            String v2 = n(root.path("payment").path("billingKey").asText(null));
+            if (StringUtils.hasText(v2)) return v2;
+            return n(root.path("billingKey").asText(null));
+        } catch (Exception ignore) { }
+        return null;
+    }
+
+    private static String get(JsonNode n, String... path) {
+        if (n == null) return null;
+        JsonNode cur = n;
+        for (String p : path) cur = (cur == null ? null : cur.path(p));
+        if (cur == null) return null;
+        String v = cur.asText(null);
+        return (v != null && !v.isBlank()) ? v : null;
+    }
+
+    private static String firstNonBlank(String... arr) {
+        if (arr == null) return null;
+        for (String s : arr) if (s != null && !s.isBlank()) return s;
+        return null;
+    }
+
     private static String n(String s){ return (s==null || s.isBlank()) ? null : s; }
 }

@@ -1,3 +1,4 @@
+// src/main/java/com/dodam/config/SecurityConfig.java
 package com.dodam.config;
 
 import lombok.RequiredArgsConstructor;
@@ -31,54 +32,49 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // CORS
             .cors(cors -> cors.configurationSource(corsSource()))
-            // CSRF: 상태변경 엔드포인트만 예외
             .csrf(csrf -> csrf.ignoringRequestMatchers(
+                // 기존
                 "/oauth/**",
                 "/member/loginForm",
                 "/member/logout",
                 "/member/updateProfile",
                 "/member/changePw",
                 "/member/changePwDirect",
-                "/member/signup"
+                "/member/signup",
+                "/webhooks/pg",
+                // ✅ 결제/구독/빌링키 전부 예외 처리
+                "/payments/**",
+                "/subscriptions/**",
+                "/billing-keys/**",
+                "/pg/payments/**",
+                "/pg/transactions/**"
             ))
-            // 인가
             .authorizeHttpRequests(auth -> auth
-                // ---- 공개 허용 경로 ----
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/member/**").permitAll()          // 회원가입/로그인 등
-                .requestMatchers("/webhooks/pg").permitAll()        // PG 웹훅
-                .requestMatchers("/payments/confirm").permitAll()
+                .requestMatchers("/member/**").permitAll()
+                .requestMatchers("/webhooks/pg").permitAll()
+                .requestMatchers("/payments/**").permitAll()
                 .requestMatchers("/pg/payments/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/pg/payments/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/pg/transactions/**").permitAll()
-
-                // ---- Plan 모듈 ----
                 .requestMatchers("/subscriptions/**").permitAll()
-                .requestMatchers("/payments/**").permitAll()        // 결제 REST 공개(필요 시 조정)
                 .requestMatchers("/billing-keys/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/billing-keys/confirm", "/billing-keys/register").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/billing-keys/list").permitAll()
                 .requestMatchers("/sub/**").authenticated()
-                .requestMatchers("/pg/**").authenticated()          // 위에서 GET만 permitAll 한 경로는 예외
-                .requestMatchers("/static/**").permitAll() 
-                .requestMatchers("/oauth/**").permitAll() 
-                .requestMatchers("/favicon.ico").permitAll() 
-                .requestMatchers("/member/signup").permitAll() 
-                .requestMatchers("/member/loginForm").permitAll() 
-                .requestMatchers("/products/**").permitAll() 
-                .requestMatchers("/index.html").permitAll() 
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                
-
-                // ---- 그 외 ----
+                .requestMatchers("/pg/**").authenticated()
+                .requestMatchers("/static/**").permitAll()
+                .requestMatchers("/oauth/**").permitAll()
+                .requestMatchers("/favicon.ico").permitAll()
+                .requestMatchers("/member/signup").permitAll()
+                .requestMatchers("/member/loginForm").permitAll()
+                .requestMatchers("/products/**").permitAll()
+                .requestMatchers("/index.html").permitAll()
                 .anyRequest().permitAll()
             )
-            // 세션 기반
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-            // 세션 인증 주입 필터
             .addFilterBefore(sessionAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -87,14 +83,11 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsSource() {
         CorsConfiguration c = new CorsConfiguration();
-        c.setAllowCredentials(true); // axios withCredentials:true 매칭
-        c.setAllowedOrigins(List.of(
-            front,                      // ex) http://localhost:3000
-            "http://127.0.0.1:3000"
-        ));
+        c.setAllowCredentials(true);
+        // ✅ 다양한 로컬 포트 허용
+        c.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:3000", front));
         c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
         c.setAllowedHeaders(List.of("*"));
-        // 필요시 노출헤더: c.setExposedHeaders(List.of("Set-Cookie"));
 
         UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
         src.registerCorsConfiguration("/**", c);

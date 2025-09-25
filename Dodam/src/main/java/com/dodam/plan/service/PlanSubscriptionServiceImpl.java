@@ -1,10 +1,8 @@
-// src/main/java/com/dodam/plan/service/PlanSubscriptionServiceImpl.java
 package com.dodam.plan.service;
 
 import com.dodam.member.entity.MemberEntity;
 import com.dodam.member.repository.MemberRepository;
 import com.dodam.plan.Entity.*;
-import com.dodam.plan.dto.PlanLookupResult;
 import com.dodam.plan.dto.PlanSubscriptionStartReq;
 import com.dodam.plan.enums.PlanEnums.PiStatus;
 import com.dodam.plan.enums.PlanEnums.PmBillingMode;
@@ -108,7 +106,7 @@ public class PlanSubscriptionServiceImpl implements PlanSubscriptionService {
         String paymentId = "inv" + invoice.getPiId() + "-ts" + System.currentTimeMillis();
         String orderName = "Dodam Subscription";
 
-        // 웹훅 매칭 대비
+        // ✅ 웹훅 매칭 대비 — our orderId 선저장
         invoice.setPiUid(paymentId);
         invoiceRepo.save(invoice);
 
@@ -132,6 +130,7 @@ public class PlanSubscriptionServiceImpl implements PlanSubscriptionService {
         resp.put("status", status);
 
         if (isPaid(status)) {
+            // ✅ 성공해도 piUid는 our orderId 유지
             invoice.setPiStat(PiStatus.PAID);
             invoice.setPiPaid(LocalDateTime.now());
             invoice.setPiUid(paymentId);
@@ -139,20 +138,13 @@ public class PlanSubscriptionServiceImpl implements PlanSubscriptionService {
 
             activateInvoice(invoice, termMonths);
 
-            // 메타 업데이트 보강: 1) 현재 결과 2) orderId 상세 3) provider id lookup
             try {
+                // 이번 결제 응답으로 메타 업데이트 (이번 결제수단만)
                 updatePaymentCardMetaIfPresent(payment, result);
+
+                // byOrder 상세로 보강
                 JsonNode byOrder = portoneClient.getPaymentByOrderId(paymentId);
                 updatePaymentCardMetaIfPresent(payment, byOrder);
-
-                // provider id가 pattUid로 기록되어 있으면 그걸로도 조회 (웹훅에서 들어온 뒤)
-                var lastAttemptUid = /* 안전하게 최근 시도 providerUid를 가져오는 네이티브/Repo 메서드가 있다면 사용 */
-                        payment.getPayRaw(); // 없으면 생략 (예: pgSvc.safeLookup(paymentId) 로 대체)
-                PlanLookupResult look = /* fallback */ null;
-                try { look = /* 주입된 */ null; } catch (Exception ignore) {}
-                if (look != null && StringUtils.hasText(look.rawJson())) {
-                    updatePaymentCardMetaIfPresent(payment, om.readTree(look.rawJson()));
-                }
             } catch (Exception e) {
                 log.debug("[PaymentMeta] fetch/update skipped: {}", e.toString());
             }
@@ -203,11 +195,13 @@ public class PlanSubscriptionServiceImpl implements PlanSubscriptionService {
 
                     if (candidate != null) {
                         var lr = portoneClient.lookupPayment(candidate);
-                        JsonNode j = safeJson(lr.raw());
-                        JsonNode node2 = firstPaymentNode(j);
-                        String s2 = pickStatus(node2);
-                        if (isTerminal(s2)) return node2;
-                        lastSeen = node2;
+                        if (lr != null && lr.raw() != null) {
+                            JsonNode j = safeJson(lr.raw());
+                            JsonNode node2 = firstPaymentNode(j);
+                            String s2 = pickStatus(node2);
+                            if (isTerminal(s2)) return node2;
+                            lastSeen = node2;
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -238,7 +232,7 @@ public class PlanSubscriptionServiceImpl implements PlanSubscriptionService {
                 .orElseThrow(() -> new IllegalStateException("회원 정보를 찾을 수 없습니다. mid=" + mid));
 
         // ✅ 사용자가 고른 결제수단을 정확히 집는다
-        PlanPaymentEntity payment = null;
+        PlanPaymentEntity payment;
         if (req.getPayId() != null) {
             payment = paymentRepo.findById(req.getPayId())
                     .orElseThrow(() -> new IllegalStateException("선택한 결제수단이 존재하지 않습니다. payId=" + req.getPayId()));
@@ -273,7 +267,7 @@ public class PlanSubscriptionServiceImpl implements PlanSubscriptionService {
         if (pm == null) {
             pm = PlanMember.builder()
                     .member(member)
-                    .payment(payment) // ✅ 사용자가 고른 카드
+                    .payment(payment) // ✅ 이번 결제에 사용할 카드
                     .plan(plan)
                     .terms(terms)
                     .price(price)
@@ -289,7 +283,7 @@ public class PlanSubscriptionServiceImpl implements PlanSubscriptionService {
             pm = planMemberRepo.save(pm);
             log.info("[subscriptions/charge-and-confirm] PlanMember created mid={}, pmId={}", mid, pm.getPmId());
         } else {
-            // 기존 멤버라도 이번 결제에 사용할 결제수단을 갱신
+            // 기존 멤버라도 이번 결제수단을 갱신
             pm.setPayment(payment);
             planMemberRepo.save(pm);
         }
@@ -331,9 +325,9 @@ public class PlanSubscriptionServiceImpl implements PlanSubscriptionService {
                 root.at("/card/last4").asText(null),
                 root.at("/payment/card/last4").asText(null)
         );
-        if (last4 != null && last4.length() > 4) {
-            String compact = last4.replace(" ", "");
-            last4 = compact.substring(Math.max(0, compact.length() - 4));
+        if (last4 != null) {
+            String digits = last4.replaceAll("\\D", "");
+            if (digits.length() >= 4) last4 = digits.substring(digits.length() - 4);
         }
 
         String bin = firstNonBlank(
@@ -425,31 +419,5 @@ public class PlanSubscriptionServiceImpl implements PlanSubscriptionService {
     private JsonNode safeJson(String s) {
         try { return om.readTree(s == null ? "{}" : s); }
         catch (Exception e) { return om.createObjectNode(); }
-    }
-    
-    private void upsertCardMetaByBillingKeyFirst(String billingKey, String bin, String brand, String last4, String pg, Long fallbackPayId) {
-        int rows = 0;
-
-        if (StringUtils.hasText(billingKey)) {
-            rows = paymentRepo.updateCardMetaByKey(
-                    billingKey,
-                    (StringUtils.hasText(bin)   ? bin   : null),
-                    (StringUtils.hasText(brand) ? brand : null),
-                    (StringUtils.hasText(last4) ? last4 : null),
-                    (StringUtils.hasText(pg)    ? pg    : null)
-            );
-            log.info("[SubSvc] cardMeta update(by key) rows={}, key={}", rows, billingKey);
-        }
-
-        if (rows == 0 && fallbackPayId != null) {
-            rows = paymentRepo.updateCardMeta(
-                    fallbackPayId,
-                    (StringUtils.hasText(bin)   ? bin   : null),
-                    (StringUtils.hasText(brand) ? brand : null),
-                    (StringUtils.hasText(last4) ? last4 : null),
-                    (StringUtils.hasText(pg)    ? pg    : null)
-            );
-            log.info("[SubSvc] cardMeta update(by id) rows={}, payId={}", rows, fallbackPayId);
-        }
     }
 }

@@ -1,4 +1,3 @@
-// src/main/java/com/dodam/plan/repository/PlanPaymentRepository.java
 package com.dodam.plan.repository;
 
 import com.dodam.member.entity.MemberEntity;
@@ -19,11 +18,9 @@ public interface PlanPaymentRepository extends JpaRepository<PlanPaymentEntity, 
     List<PlanPaymentEntity> findByMidOrderByPayIdDesc(String mid);
     Optional<PlanPaymentEntity> findTop1ByMidOrderByPayIdDesc(String mid);
     Optional<PlanPaymentEntity> findTopByMidOrderByPayIdDesc(String mid);
-
-    // ✅ 파생쿼리로 변경 (이전 @Query/@Param로 500 떨어지던 부분 방지)
     Optional<PlanPaymentEntity> findByPayKey(String payKey);
-
     Optional<PlanPaymentEntity> findByMidAndPayKey(String mid, String payKey);
+
     default Optional<PlanPaymentEntity> findByMemberAndPayKey(MemberEntity member, String payKey) {
         return findByMidAndPayKey(member.getMid(), payKey);
     }
@@ -34,7 +31,7 @@ public interface PlanPaymentRepository extends JpaRepository<PlanPaymentEntity, 
         return findByMidOrderByPayIdDesc(mid);
     }
 
-    // ★ ID(=payId) 기준 갱신 — 기존 호출부 호환
+    // ★ payId 기준 카드 메타 갱신
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("""
@@ -51,7 +48,7 @@ public interface PlanPaymentRepository extends JpaRepository<PlanPaymentEntity, 
                        @Param("last4") String last4,
                        @Param("pg")    String pg);
 
-    // ★ billingKey(=payKey) 기준 갱신 — 빌링키만 있을 때 사용
+    // ★ billingKey 기준 카드 메타 갱신 (보조용)
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("""
@@ -67,7 +64,7 @@ public interface PlanPaymentRepository extends JpaRepository<PlanPaymentEntity, 
                             @Param("brand") String brand,
                             @Param("last4") String last4,
                             @Param("pg")    String pg);
-    
+
     default Optional<PlanPaymentEntity> findDefaultByMember(String mid) {
         List<PlanPaymentEntity> list = findByMidOrderByPayIdDesc(mid);
         if (list == null || list.isEmpty()) return java.util.Optional.empty();

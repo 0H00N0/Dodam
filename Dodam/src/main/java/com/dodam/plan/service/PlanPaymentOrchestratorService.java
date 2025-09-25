@@ -1,4 +1,3 @@
-// src/main/java/com/dodam/plan/service/PlanPaymentOrchestratorService.java
 package com.dodam.plan.service;
 
 import com.dodam.plan.Entity.PlanInvoiceEntity;
@@ -20,43 +19,36 @@ public class PlanPaymentOrchestratorService {
     private final PlanInvoiceRepository invoiceRepo;
     private final PlanPaymentRepository paymentRepo;
 
-    /**
-     * 배치/재시도: 인보이스 ID만으로 결제 시도
-     */
+    /** 배치/재시도: 인보이스 ID만으로 결제 시도 */
     @Transactional
     public void tryPayInvoice(Long piId) {
         var inv = invoiceRepo.findById(piId)
                 .orElseThrow(() -> new IllegalArgumentException("invoice not found: " + piId));
 
-        // ✅ mid는 인보이스에 연결된 PlanMember에서 가져옵니다.
         String mid = extractMidFromInvoice(inv);
 
-        // 사용자 최신 결제 프로필로 결제 시도
         PlanPaymentEntity payment = paymentRepo.findTopByMidOrderByPayIdDesc(mid)
                 .orElseThrow(() -> new IllegalStateException("no payment profile for mid=" + mid));
 
         confirmInvoice(inv, payment);
     }
 
-    /**
-     * 인보이스 단건 승인(or 재시도)
-     */
+    /** 인보이스 단건 승인(or 재시도) */
     @Transactional
     public void confirmInvoice(PlanInvoiceEntity inv, PlanPaymentEntity payment) {
         log.info("[confirmInvoice] invId={}, piUid={}, amount={}, mid={}",
                 inv.getPiId(), inv.getPiUid(), inv.getPiAmount(), payment.getMid());
 
-        // null-safe customerId (없으면 mid 로 대체)
         String customerId = payment.getPayCustomer();
         if (customerId == null || customerId.isBlank()) {
-            customerId = payment.getMid(); // 또는 member.getMid()
+            customerId = payment.getMid();
         }
 
         var res = pgSvc.payByBillingKey(
                 inv.getPiUid(),                    // paymentId
-                payment.getPayKey(),               // billingKey ✅
+                payment.getPayKey(),               // billingKey
                 inv.getPiAmount().longValue(),     // amount
-                customerId                         // customerId
+                customerId
         );
 
         String uid      = res.paymentId();
@@ -77,18 +69,10 @@ public class PlanPaymentOrchestratorService {
         log.info("[confirmInvoice] result: success={}, uid={}, reason={}", success, uid, reason);
     }
 
-    /**
-     * 인보이스에서 회원 MID 추출
-     * - 기본: inv.getPlanMember().getMid()
-     * - 만약 PlanMember에 getMid()가 없고 Member 엔티티를 들고 있다면 아래 한 줄을 바꾸세요:
-     *     return inv.getPlanMember().getMember().getMid();
-     */
     private String extractMidFromInvoice(PlanInvoiceEntity inv) {
         if (inv.getPlanMember() == null) {
             throw new IllegalStateException("invoice has no PlanMember linked");
         }
-        // 🔽 프로젝트 모델에 맞게 한 줄만 선택해서 사용하세요.
         return inv.getPlanMember().getMember().getMid();
-        // return inv.getPlanMember().getMember().getMid(); // <-- PlanMember 가 Member 엔티티를 통해 mid를 가질 때
     }
 }

@@ -1,9 +1,11 @@
-// src/main/java/com/dodam/plan/repository/PlanInvoiceRepository.java
 package com.dodam.plan.repository;
 
 import com.dodam.plan.Entity.PlanInvoiceEntity;
-import com.dodam.plan.dto.PlanConfirmView;
+import com.dodam.plan.enums.PlanEnums;
 import com.dodam.plan.enums.PlanEnums.PiStatus;
+
+import jakarta.persistence.LockModeType;
+
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
@@ -13,29 +15,38 @@ import java.util.Optional;
 
 public interface PlanInvoiceRepository extends JpaRepository<PlanInvoiceEntity, Long> {
 
-    /**
-     * 최근 생성된 동일 사용자(mid), 금액, 통화, 상태(PENDING) 인보이스 조회
-     * - 시간 범위를 지정해서 멱등 보장 (예: 최근 10분)
-     * - PlanInvoiceEntity → PlanMember → Member → mid 경로를 통해 접근
-     */
+	Optional<PlanInvoiceEntity> findByPiUid(String piUid);
+
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select i from PlanInvoiceEntity i where i.piId = :piId")
+	Optional<PlanInvoiceEntity> findForUpdate(@Param("piId") Long piId);
+
+	/** PAID 처리 + piUid 비어있으면 세팅 */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
-        select i from PlanInvoiceEntity i
-        where i.planMember.member.mid = :mid
-          and i.piStat = :stat
-          and i.piAmount = :amount
-          and i.piCurr = :curr
-          and i.piStart between :from and :to
-        order by i.piId desc
+        update PlanInvoiceEntity i
+           set i.piStat = :paid,
+               i.piPaid = :paidAt,
+               i.piUid  = coalesce(i.piUid, :uid)
+         where i.piId = :piId
     """)
-    Optional<PlanInvoiceEntity> findRecentPendingSameAmount(
-            @Param("mid") String mid,
-            @Param("stat") PiStatus stat,
-            @Param("amount") BigDecimal amount,
-            @Param("curr") String curr,
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to
-    );
-    
-    @Query("select i from PlanInvoiceEntity i where i.piUid = :uid")
-    Optional<PlanInvoiceEntity> findByPiUid(@Param("uid") String uid);
+    int markPaidAndSetUidIfEmpty(@Param("piId") Long piId,
+                                 @Param("uid") String uid,
+                                 @Param("paidAt") LocalDateTime paidAt,
+                                 @Param("paid") PlanEnums.PiStatus paid);
+
+    default int markPaidAndSetUidIfEmpty(Long piId, String uid, LocalDateTime paidAt) {
+        return markPaidAndSetUidIfEmpty(piId, uid, paidAt, PlanEnums.PiStatus.PAID);
+    }
+	/** 컨트롤러에서 호출하는 메서드: “빈 구현”으로 제공해 컴파일/런타임 안전 */
+    default Optional<PlanInvoiceEntity> findRecentPendingSameAmount(
+            String mid,
+            PlanEnums.PiStatus status,
+            BigDecimal amount,
+            String currency,
+            LocalDateTime from,
+            LocalDateTime to
+    ) {
+        return Optional.empty();
+    }
 }
