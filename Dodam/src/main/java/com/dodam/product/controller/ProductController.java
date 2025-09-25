@@ -5,26 +5,32 @@ import com.dodam.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @CrossOrigin(origins = "http://localhost:3000") // (포트 3000에서 오는 요청 허용)
 @RestController
-@RequestMapping("/api/productsPage")
+@RequestMapping("/products")
 @RequiredArgsConstructor
 public class ProductController {
 
     private final ProductService productService;
 
     @GetMapping
-    public Page<ProductDTO> list(
-        @RequestParam(required = false) String q,
-        @RequestParam(required = false) Long catenum,
-        @RequestParam(required = false) Long prosnum,
-        @RequestParam(required = false) String prograde, // S/A/B/C
+    public ResponseEntity<?> list(
+        @RequestParam(name = "q", required = false) String q,
+        @RequestParam(name = "catenum", required = false) Long catenum,
+        @RequestParam(name = "prosnum", required = false) Long prosnum,
+        @RequestParam(name = "prograde", required = false) String prograde,
         @PageableDefault(size = 20, sort = "pronum", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return productService.searchByColumns(q, catenum, prosnum, prograde, pageable);
-    }
+        System.out.println("==== /products API 호출됨 ====");
+        Page<ProductDTO> result = productService.searchByColumns(q, catenum, prosnum, prograde, pageable);
+        if (result.isEmpty()) {
+            return ResponseEntity.ok("등록된 상품이 없습니다.");
+        }
+        return ResponseEntity.ok(result);
+        }
 
     @GetMapping("/{pronum}")
     public ProductDTO get(@PathVariable Long pronum) {
@@ -46,4 +52,6 @@ public class ProductController {
     public void delete(@PathVariable Long pronum) {
         productService.delete(pronum);
     }
+    
+    
 }
