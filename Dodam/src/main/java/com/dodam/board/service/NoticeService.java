@@ -30,6 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
     if(req.getTitle()!=null) e.setTitle(req.getTitle()); if(req.getContent()!=null) e.setContent(req.getContent()); if(req.getPinned()!=null) e.setPinned(req.getPinned());
     if(req.getStatus()!=null) e.setStatus(NoticeEntity.NoticeStatus.valueOf(req.getStatus())); return toDto(e); }
   public void delete(Long id){ if(!repo.existsById(id)) throw new NotFoundException("공지 없음: id="+id); repo.deleteById(id); }
-  private NoticeResponse toDto(NoticeEntity e){ return NoticeResponse.builder().id(e.getId()).boardCode(e.getBoard().getCode()).title(e.getTitle()).content(e.getContent())
+  private NoticeResponse toDto(NoticeEntity e){ return NoticeResponse.builder().id(e.getId()).boardCode(e.getId().getClass()).title(e.getTitle()).content(e.getContent())
     .pinned(e.isPinned()).views(e.getViews()).status(e.getStatus().name()).createdAt(e.getCreatedAt()).updatedAt(e.getUpdatedAt()).build(); }
 }
